@@ -39,54 +39,121 @@ export default function Login() {
 
   return (
     <div className="login-wrapper">
-      <div className="login-card glass-panel animate-fade-in">
-        <div className="login-header">
-          <h2>Mi Licorería</h2>
-          <p>Ingresa a tu cuenta para gestionar el negocio</p>
+      <div className="login-container">
+        
+        {/* Panel Izquierdo: Formulario de Acceso */}
+        <div className="login-left-side">
+          <div className="login-card glass-panel animate-fade-in">
+            <div className="login-header">
+              <h2>Mi Licorería</h2>
+              <p>Ingresa a tu cuenta para gestionar el negocio</p>
+            </div>
+
+            {error && (
+              <div className="login-error">
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="login-form">
+              <div className="form-group">
+                <label className="label-field">Correo Electrónico</label>
+                <div className="input-with-icon">
+                  <Mail size={16} className="input-icon" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="ejemplo@licoreria.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="label-field">Contraseña</label>
+                <div className="input-with-icon">
+                  <KeyRound size={16} className="input-icon" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              <button type="submit" disabled={loading} className="btn btn-primary w-full login-btn">
+                {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              </button>
+            </form>
+          </div>
         </div>
 
-        {error && (
-          <div className="login-error">
-            <AlertCircle size={16} />
-            <span>{error}</span>
-          </div>
-        )}
+        {/* Panel Derecho: Presentación y Animación Vectorial SVG */}
+        <div className="login-right-side">
+          <div className="vector-art-wrapper">
+            <svg viewBox="0 0 400 400" className="vector-svg">
+              <defs>
+                <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#a67c26" />
+                  <stop offset="100%" stopColor="#d4a853" />
+                </linearGradient>
+              </defs>
+              
+              {/* Círculos abstractos de fondo */}
+              <circle cx="200" cy="200" r="150" fill="none" stroke="rgba(166, 124, 38, 0.08)" strokeWidth="1" strokeDasharray="6,6" />
+              <circle cx="200" cy="200" r="100" fill="none" stroke="rgba(166, 124, 38, 0.04)" strokeWidth="1" />
+              
+              {/* Partículas / Burbujas flotantes animadas */}
+              <circle cx="110" cy="260" r="5" className="bubble bubble-1" />
+              <circle cx="280" cy="170" r="7" className="bubble bubble-2" />
+              <circle cx="150" cy="110" r="4" className="bubble bubble-3" />
+              <circle cx="250" cy="290" r="6" className="bubble bubble-4" />
+              <circle cx="220" cy="90" r="5" className="bubble bubble-5" />
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label className="label-field">Correo Electrónico</label>
-            <div className="input-with-icon">
-              <Mail size={16} className="input-icon" />
-              <input
-                type="email"
-                required
-                placeholder="ejemplo@licoreria.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input-field"
-              />
-            </div>
-          </div>
+              {/* Copa minimalista */}
+              <g className="vector-glass">
+                <path d="M220,310 L270,310 M245,310 L245,250 M215,170 L275,170 C275,225 215,225 215,170" 
+                      fill="none" 
+                      stroke="url(#gold-gradient)" 
+                      strokeWidth="2.5" 
+                      strokeLinejoin="round" 
+                      strokeLinecap="round" />
+                {/* Contenido / líquido de la copa */}
+                <path d="M222,192 C235,186 255,186 268,192" fill="none" stroke="rgba(166, 124, 38, 0.5)" strokeWidth="2" strokeLinecap="round" />
+              </g>
 
-          <div className="form-group">
-            <label className="label-field">Contraseña</label>
-            <div className="input-with-icon">
-              <KeyRound size={16} className="input-icon" />
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-field"
-              />
-            </div>
+              {/* Botella premium minimalista */}
+              <g className="vector-bottle">
+                <path d="M165,310 L215,310 L215,190 L202,130 L202,80 L178,80 L178,130 L165,190 Z" 
+                      fill="none" 
+                      stroke="url(#gold-gradient)" 
+                      strokeWidth="3" 
+                      strokeLinejoin="round" 
+                      strokeLinecap="round" />
+                {/* Cuello / Tapa */}
+                <rect x="174" y="68" width="42" height="12" rx="2" fill="url(#gold-gradient)" />
+                {/* Detalles internos */}
+                <line x1="190" y1="80" x2="190" y2="310" stroke="rgba(166, 124, 38, 0.15)" strokeWidth="1" strokeDasharray="4,4" />
+                <path d="M175,210 C182,202 198,202 205,210" fill="none" stroke="url(#gold-gradient)" strokeWidth="1.5" />
+                <path d="M170,240 C180,230 200,230 210,240" fill="none" stroke="url(#gold-gradient)" strokeWidth="1.5" />
+              </g>
+            </svg>
           </div>
+          
+          <div className="right-side-text">
+            <h3>Gestión Inteligente</h3>
+            <p>
+              Sistema de licorería especializado y hecho a la medida. Optimiza el inventario, acelera tus transacciones y audita cada movimiento en tiempo real con una interfaz premium y fluida.
+            </p>
+          </div>
+        </div>
 
-          <button type="submit" disabled={loading} className="btn btn-primary w-full login-btn">
-            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-          </button>
-        </form>
       </div>
 
       <style jsx>{`
@@ -97,15 +164,46 @@ export default function Login() {
           align-items: center;
           justify-content: center;
           background: var(--bg-color);
+          overflow: hidden;
+        }
+
+        .login-container {
+          width: 100%;
+          height: 100%;
+          display: flex;
+        }
+
+        .login-left-side {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px;
+          background: var(--bg-color);
+          z-index: 10;
+        }
+
+        .login-right-side {
+          flex: 1;
+          background: linear-gradient(135deg, #1e1b18 0%, #0c0b0a 100%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 40px;
+          position: relative;
+          border-left: 1px solid rgba(166, 124, 38, 0.1);
         }
 
         .login-card {
-          width: 90%;
+          width: 100%;
           max-width: 420px;
           display: flex;
           flex-direction: column;
           gap: 24px;
-          border-color: rgba(212, 168, 83, 0.25);
+          border-color: rgba(212, 168, 83, 0.2);
+          box-shadow: 0 20px 40px rgba(0,0,0,0.03);
+          background: rgba(255, 255, 255, 0.9);
         }
 
         .login-header {
@@ -125,8 +223,8 @@ export default function Login() {
         }
 
         .login-error {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.3);
+          background: rgba(239, 68, 68, 0.08);
+          border: 1px solid rgba(239, 68, 68, 0.2);
           color: var(--error-red);
           padding: 12px;
           border-radius: 8px;
@@ -161,6 +259,8 @@ export default function Login() {
 
         .input-with-icon :global(.input-field) {
           padding-left: 44px;
+          background: rgba(255, 255, 255, 0.8);
+          border-color: rgba(0, 0, 0, 0.08);
         }
 
         .w-full {
@@ -171,6 +271,100 @@ export default function Login() {
           margin-top: 8px;
           height: 48px;
           font-size: 15px;
+        }
+
+        /* Estilos Lado Derecho e Ilustraciones */
+        .vector-art-wrapper {
+          width: 100%;
+          max-width: 320px;
+          margin-bottom: 30px;
+          display: flex;
+          justify-content: center;
+        }
+
+        .vector-svg {
+          width: 100%;
+          height: auto;
+        }
+
+        .right-side-text {
+          max-width: 440px;
+          text-align: center;
+        }
+
+        .right-side-text h3 {
+          color: var(--accent-gold);
+          font-size: 24px;
+          font-weight: 700;
+          margin-bottom: 12px;
+        }
+
+        .right-side-text p {
+          color: #94a3b8;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+
+        /* Animaciones CSS */
+        :global(.vector-bottle) {
+          transform-origin: 190px 310px;
+          animation: swingBottle 6s ease-in-out infinite;
+        }
+
+        :global(.vector-glass) {
+          transform-origin: 245px 310px;
+          animation: swingGlass 6s ease-in-out infinite;
+          animation-delay: 0.5s;
+        }
+
+        :global(.bubble) {
+          fill: var(--accent-gold);
+          opacity: 0;
+          animation: floatBubble 4s ease-in infinite;
+        }
+
+        :global(.bubble-1) { animation-delay: 0s; transform: translateX(0); }
+        :global(.bubble-2) { animation-delay: 1.5s; transform: translateX(-10px); }
+        :global(.bubble-3) { animation-delay: 0.8s; transform: translateX(5px); }
+        :global(.bubble-4) { animation-delay: 2.2s; transform: translateX(-5px); }
+        :global(.bubble-5) { animation-delay: 3s; transform: translateX(10px); }
+
+        @keyframes swingBottle {
+          0%, 100% { transform: rotate(0deg) translateY(0); }
+          50% { transform: rotate(-2deg) translateY(-4px); }
+        }
+
+        @keyframes swingGlass {
+          0%, 100% { transform: rotate(0deg) translateY(0); }
+          50% { transform: rotate(3deg) translateY(-2px); }
+        }
+
+        @keyframes floatBubble {
+          0% {
+            transform: translateY(120px);
+            opacity: 0;
+          }
+          10% {
+            opacity: 0.4;
+          }
+          90% {
+            opacity: 0.4;
+          }
+          100% {
+            transform: translateY(-80px);
+            opacity: 0;
+          }
+        }
+
+        /* Responsividad */
+        @media (max-width: 992px) {
+          .login-right-side {
+            display: none;
+          }
+          .login-left-side {
+            flex: 1;
+            width: 100%;
+          }
         }
       `}</style>
     </div>

@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { KeyRound, Mail, AlertCircle } from 'lucide-react';
+import { useConfig } from '@/components/ConfigProvider';
 
 export default function Login() {
+  const { configs } = useConfig();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -44,8 +46,21 @@ export default function Login() {
         {/* Panel Izquierdo: Formulario de Acceso */}
         <div className="login-left-side">
           <div className="login-card glass-panel animate-fade-in">
-            <div className="login-header">
-              <h2>Mi Licorería</h2>
+            <div className="login-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              {configs?.logo_url ? (
+                <img 
+                  src={configs.logo_url} 
+                  alt={configs.nombre_negocio || 'Logo'} 
+                  style={{
+                    maxWidth: '80px',
+                    maxHeight: '80px',
+                    objectFit: 'contain',
+                    marginBottom: '16px',
+                    borderRadius: '8px'
+                  }}
+                />
+              ) : null}
+              <h2>{configs?.nombre_negocio || 'Mi Licorería'}</h2>
               <p>Ingresa a tu cuenta para gestionar el negocio</p>
             </div>
 

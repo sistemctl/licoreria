@@ -35,7 +35,7 @@ export function ConfigProvider({ children }) {
 
   const fetchConfigs = useCallback(async () => {
     try {
-      const res = await fetch('/api/configuracion');
+      const res = await fetch('/api/configuracion', { cache: 'no-store' });
       const json = await res.json();
       if (json && json.configMap) {
         setConfigs({

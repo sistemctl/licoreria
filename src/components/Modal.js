@@ -3,7 +3,7 @@
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
 
-export default function Modal({ isOpen, onClose, title, children }) {
+export default function Modal({ isOpen, onClose, title, children, size }) {
   // Lock scroll when open
   useEffect(() => {
     if (isOpen) {
@@ -20,7 +20,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()}>
+      <div className={`modal-content glass-panel ${size ? `size-${size}` : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{title}</h3>
           <button className="close-btn" onClick={onClose}>
@@ -58,6 +58,14 @@ export default function Modal({ isOpen, onClose, title, children }) {
           gap: 16px;
           border-color: var(--accent-gold);
           animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-content.size-lg {
+          max-width: 900px;
+        }
+
+        .modal-content.size-xl {
+          max-width: 1200px;
         }
 
         .modal-header {

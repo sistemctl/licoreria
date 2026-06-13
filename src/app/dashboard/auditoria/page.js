@@ -82,15 +82,18 @@ export default function AuditoriaPage() {
 
       <style jsx>{`
         .json-pre {
-          max-width: 200px;
-          max-height: 80px;
+          max-width: 250px;
+          max-height: 130px;
           overflow: auto;
-          font-size: 10px;
-          background: rgba(0, 0, 0, 0.4);
-          padding: 6px;
-          border-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          color: var(--text-secondary);
+          font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+          font-size: 11px;
+          background: #0f172a;
+          color: #38bdf8;
+          padding: 8px 12px;
+          border-radius: 6px;
+          border: 1px solid #1e293b;
+          white-space: pre-wrap;
+          word-break: break-all;
         }
       `}</style>
     </div>

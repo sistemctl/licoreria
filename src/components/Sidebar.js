@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { useConfig } from '@/components/ConfigProvider';
 import { 
   Home, 
   ShoppingCart, 
@@ -24,36 +25,60 @@ import {
   LogOut
 } from 'lucide-react';
 
-const MENU_ITEMS = [
-  { label: 'Inicio', path: '/dashboard', icon: Home, permKey: 'inicio' },
-  { label: 'POS (Punto de Venta)', path: '/dashboard/pos', icon: ShoppingCart, permKey: 'pos' },
-  { label: 'Inventario', path: '/dashboard/inventario', icon: Package, permKey: 'inventario' },
-  { label: 'Categorías', path: '/dashboard/categorias', icon: Tag, permKey: 'categorias' },
-  { label: 'Combos', path: '/dashboard/combos', icon: Box, permKey: 'combos' },
-  { label: 'Descuentos', path: '/dashboard/descuentos', icon: Percent, permKey: 'descuentos' },
-  { label: 'Ventas', path: '/dashboard/ventas', icon: History, permKey: 'ventas' },
-  { label: 'Compras', path: '/dashboard/compras', icon: Truck, permKey: 'compras' },
-  { label: 'Proveedores', path: '/dashboard/proveedores', icon: Building2, permKey: 'proveedores' },
-  { label: 'Clientes', path: '/dashboard/clientes', icon: Users, permKey: 'clientes' },
-  { label: 'Cuentas por Cobrar', path: '/dashboard/cuentas-por-cobrar', icon: CreditCard, permKey: 'creditos' },
-  { label: 'Devoluciones', path: '/dashboard/devoluciones', icon: Undo, permKey: 'devoluciones' },
-  { label: 'Caja', path: '/dashboard/caja', icon: Calculator, permKey: 'caja' },
-  { label: 'Reportes', path: '/dashboard/reportes', icon: BarChart3, permKey: 'reportes' },
-  { label: 'Auditoría', path: '/dashboard/auditoria', icon: ShieldAlert, permKey: 'auditoria' },
-  { label: 'Usuarios', path: '/dashboard/usuarios', icon: User, permKey: 'usuarios' },
-  { label: 'Configuración', path: '/dashboard/configuracion', icon: Settings, permKey: 'configuracion' },
+const MENU_SECTIONS = [
+  {
+    title: 'Operaciones',
+    items: [
+      { label: 'Inicio', path: '/dashboard', icon: Home, permKey: 'inicio' },
+      { label: 'POS (Punto de Venta)', path: '/dashboard/pos', icon: ShoppingCart, permKey: 'pos' },
+      { label: 'Ventas', path: '/dashboard/ventas', icon: History, permKey: 'ventas' },
+      { label: 'Devoluciones', path: '/dashboard/devoluciones', icon: Undo, permKey: 'devoluciones' },
+      { label: 'Caja', path: '/dashboard/caja', icon: Calculator, permKey: 'caja' },
+    ]
+  },
+  {
+    title: 'Inventario',
+    items: [
+      { label: 'Productos', path: '/dashboard/inventario', icon: Package, permKey: 'inventario' },
+      { label: 'Categorías', path: '/dashboard/categorias', icon: Tag, permKey: 'categorias' },
+      { label: 'Combos', path: '/dashboard/combos', icon: Box, permKey: 'combos' },
+      { label: 'Descuentos', path: '/dashboard/descuentos', icon: Percent, permKey: 'descuentos' },
+    ]
+  },
+  {
+    title: 'Clientes y Proveedores',
+    items: [
+      { label: 'Clientes', path: '/dashboard/clientes', icon: Users, permKey: 'clientes' },
+      { label: 'Cuentas por Cobrar', path: '/dashboard/cuentas-por-cobrar', icon: CreditCard, permKey: 'creditos' },
+      { label: 'Proveedores', path: '/dashboard/proveedores', icon: Building2, permKey: 'proveedores' },
+      { label: 'Compras', path: '/dashboard/compras', icon: Truck, permKey: 'compras' },
+    ]
+  },
+  {
+    title: 'Administración',
+    items: [
+      { label: 'Reportes', path: '/dashboard/reportes', icon: BarChart3, permKey: 'reportes' },
+      { label: 'Auditoría', path: '/dashboard/auditoria', icon: ShieldAlert, permKey: 'auditoria' },
+      { label: 'Usuarios', path: '/dashboard/usuarios', icon: User, permKey: 'usuarios' },
+      { label: 'Configuración', path: '/dashboard/configuracion', icon: Settings, permKey: 'configuracion' },
+    ]
+  }
 ];
 
 export default function Sidebar() {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const { configs } = useConfig();
 
   const permisos = session?.user?.rol?.permisos || {};
 
   return (
     <div className="sidebar">
       <div className="sidebar-brand">
-        <h2>Mi Licorería</h2>
+        {configs.logo_url && (
+          <img src={configs.logo_url} alt={configs.nombre_negocio} className="sidebar-logo" />
+        )}
+        <h2>{configs.nombre_negocio}</h2>
       </div>
 
       <div className="sidebar-user-info">
@@ -62,22 +87,31 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-menu">
-        {MENU_ITEMS.map((item) => {
-          // Si el usuario no tiene permiso, no renderizar el item
-          if (!permisos[item.permKey]) return null;
-
-          const Icon = item.icon;
-          const isActive = pathname === item.path;
+        {MENU_SECTIONS.map((section) => {
+          const allowedItems = section.items.filter(item => permisos[item.permKey]);
+          if (allowedItems.length === 0) return null;
 
           return (
-            <Link 
-              key={item.path} 
-              href={item.path}
-              className={`menu-link ${isActive ? 'active' : ''}`}
-            >
-              <Icon size={18} />
-              <span>{item.label}</span>
-            </Link>
+            <div key={section.title} className="menu-section">
+              <span className="section-title">{section.title}</span>
+              <div className="section-items">
+                {allowedItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.path;
+
+                  return (
+                    <Link 
+                      key={item.path} 
+                      href={item.path}
+                      className={`menu-link ${isActive ? 'active' : ''}`}
+                    >
+                      <Icon size={18} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
 
@@ -105,13 +139,26 @@ export default function Sidebar() {
         .sidebar-brand {
           padding: 24px;
           border-bottom: 1px solid rgba(212, 168, 83, 0.1);
-          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
         }
 
         .sidebar-brand h2 {
           color: var(--accent-gold);
           font-size: 20px;
           letter-spacing: 1px;
+          margin: 0;
+          text-align: center;
+        }
+
+        .sidebar-logo {
+          max-height: 54px;
+          max-width: 100%;
+          object-fit: contain;
+          border-radius: 8px;
         }
 
         .sidebar-user-info {
@@ -133,7 +180,30 @@ export default function Sidebar() {
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 16px;
+        }
+
+        .menu-section {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .section-title {
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: var(--text-secondary);
+          opacity: 0.65;
+          padding: 4px 12px;
+          margin-bottom: 4px;
+        }
+
+        .section-items {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
         }
 
         /* Ocultar scrollbar pero mantener funcionalidad */
@@ -167,10 +237,27 @@ export default function Sidebar() {
           background: rgba(212, 168, 83, 0.05);
         }
 
+        :global(.menu-link:active) {
+          transform: scale(0.96);
+        }
+
         :global(.menu-link.active) {
-          color: #fff;
-          background: var(--accent-gold);
+          color: var(--accent-gold);
+          background: rgba(212, 168, 83, 0.12);
           font-weight: 600;
+          position: relative;
+          border-radius: 0 8px 8px 0;
+        }
+
+        :global(.menu-link.active::before) {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 10%;
+          height: 80%;
+          width: 3px;
+          background: var(--accent-gold);
+          border-radius: 0 4px 4px 0;
         }
 
         :global(.logout-btn) {

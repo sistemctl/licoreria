@@ -12,6 +12,13 @@ export default function HistorialVentasPage() {
   const [loading, setLoading] = useState(true);
   const [searchVal, setSearchVal] = useState('');
 
+  // Filtros de Utilidad
+  const [filterFechaInicio, setFilterFechaInicio] = useState('');
+  const [filterFechaFin, setFilterFechaFin] = useState('');
+  const [filterMetodoPago, setFilterMetodoPago] = useState('todos');
+  const [filterEstado, setFilterEstado] = useState('todos');
+  const [filterCajero, setFilterCajero] = useState('todos');
+
   // Modales
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedVenta, setSelectedVenta] = useState(null);
@@ -65,11 +72,48 @@ export default function HistorialVentasPage() {
     }
   };
 
-  const filteredVentas = ventas.filter(v => 
-    v.numFactura.toLowerCase().includes(searchVal.toLowerCase()) ||
-    (v.cliente && v.cliente.nombre.toLowerCase().includes(searchVal.toLowerCase())) ||
-    v.metodoPago.toLowerCase().includes(searchVal.toLowerCase())
-  );
+  // Extraer cajeros únicos de la lista de ventas
+  const cajeros = Array.from(new Set(ventas.map(v => v.usuario?.nombre).filter(Boolean)));
+
+  const filteredVentas = ventas.filter(v => {
+    // 1. Buscador texto libre
+    const matchesText = v.numFactura.toLowerCase().includes(searchVal.toLowerCase()) ||
+      (v.cliente && v.cliente.nombre.toLowerCase().includes(searchVal.toLowerCase())) ||
+      v.metodoPago.toLowerCase().includes(searchVal.toLowerCase());
+    
+    if (!matchesText) return false;
+
+    // 2. Filtro Fecha Inicio
+    if (filterFechaInicio) {
+      const vDate = new Date(v.fecha);
+      const startDate = new Date(filterFechaInicio + 'T00:00:00');
+      if (vDate < startDate) return false;
+    }
+
+    // 3. Filtro Fecha Fin
+    if (filterFechaFin) {
+      const vDate = new Date(v.fecha);
+      const endDate = new Date(filterFechaFin + 'T23:59:59');
+      if (vDate > endDate) return false;
+    }
+
+    // 4. Filtro Método de Pago
+    if (filterMetodoPago !== 'todos') {
+      if (v.metodoPago.toLowerCase() !== filterMetodoPago.toLowerCase()) return false;
+    }
+
+    // 5. Filtro Estado
+    if (filterEstado !== 'todos') {
+      if (v.estado.toLowerCase() !== filterEstado.toLowerCase()) return false;
+    }
+
+    // 6. Filtro Cajero
+    if (filterCajero !== 'todos') {
+      if (v.usuario?.nombre !== filterCajero) return false;
+    }
+
+    return true;
+  });
 
   const headers = ['Factura #', 'Fecha/Hora', 'Cliente', 'Cajero', 'Método Pago', 'Total', 'Estado', 'Acciones'];
 
@@ -81,13 +125,108 @@ export default function HistorialVentasPage() {
         {loading ? (
           <p>Cargando ventas...</p>
         ) : (
-          <Table
-            headers={headers}
-            data={filteredVentas}
-            searchVal={searchVal}
-            onSearchChange={setSearchVal}
-            searchPlaceholder="Buscar por factura, cliente..."
-            renderRow={(venta) => (
+          <>
+            {/* Filtros de Utilidad */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: '12px',
+              padding: '16px',
+              background: 'rgba(212, 168, 83, 0.05)',
+              borderRadius: '8px',
+              border: '1px solid rgba(212, 168, 83, 0.12)',
+              marginBottom: '16px',
+              alignItems: 'flex-end'
+            }}>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Fecha Inicio</label>
+                <input 
+                  type="date" 
+                  value={filterFechaInicio} 
+                  onChange={(e) => setFilterFechaInicio(e.target.value)}
+                  className="input-field" 
+                  style={{ padding: '8px', fontSize: '13px', height: '36px' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Fecha Fin</label>
+                <input 
+                  type="date" 
+                  value={filterFechaFin} 
+                  onChange={(e) => setFilterFechaFin(e.target.value)}
+                  className="input-field" 
+                  style={{ padding: '8px', fontSize: '13px', height: '36px' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Método de Pago</label>
+                <select 
+                  value={filterMetodoPago} 
+                  onChange={(e) => setFilterMetodoPago(e.target.value)}
+                  className="input-field"
+                  style={{ padding: '8px', fontSize: '13px', height: '36px', cursor: 'pointer' }}
+                >
+                  <option value="todos">Todos</option>
+                  <option value="efectivo">Efectivo</option>
+                  <option value="tarjeta">Tarjeta</option>
+                  <option value="transferencia">Transferencia</option>
+                  <option value="credito">Crédito</option>
+                  <option value="mixto">Mixto</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Estado</label>
+                <select 
+                  value={filterEstado} 
+                  onChange={(e) => setFilterEstado(e.target.value)}
+                  className="input-field"
+                  style={{ padding: '8px', fontSize: '13px', height: '36px', cursor: 'pointer' }}
+                >
+                  <option value="todos">Todos</option>
+                  <option value="completada">Completada</option>
+                  <option value="anulada">Anulada</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Cajero</label>
+                <select 
+                  value={filterCajero} 
+                  onChange={(e) => setFilterCajero(e.target.value)}
+                  className="input-field"
+                  style={{ padding: '8px', fontSize: '13px', height: '36px', cursor: 'pointer' }}
+                >
+                  <option value="todos">Todos</option>
+                  {cajeros.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setFilterFechaInicio('');
+                    setFilterFechaFin('');
+                    setFilterMetodoPago('todos');
+                    setFilterEstado('todos');
+                    setFilterCajero('todos');
+                    setSearchVal('');
+                  }}
+                  className="btn btn-secondary"
+                  style={{ width: '100%', height: '36px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  Limpiar Filtros
+                </button>
+              </div>
+            </div>
+
+            <Table
+              headers={headers}
+              data={filteredVentas}
+              searchVal={searchVal}
+              onSearchChange={setSearchVal}
+              searchPlaceholder="Buscar por factura, cliente..."
+              renderRow={(venta) => (
               <tr key={venta.id} className={venta.estado === 'anulada' ? 'low-stock-row' : ''}>
                 <td><strong>{venta.numFactura}</strong></td>
                 <td>{formatDate(venta.fecha)}</td>
@@ -113,6 +252,7 @@ export default function HistorialVentasPage() {
               </tr>
             )}
           />
+          </>
         )}
       </div>
 

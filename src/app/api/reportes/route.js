@@ -128,6 +128,26 @@ export async function GET(request) {
       orderBy: { fechaVencimiento: 'asc' }
     });
 
+    // Listados de detalle para modal interactivo
+    const latestVentas = await prisma.venta.findMany({
+      take: 5,
+      orderBy: { fecha: 'desc' },
+      include: { cliente: true }
+    });
+
+    const latestCompras = await prisma.compra.findMany({
+      take: 5,
+      orderBy: { fecha: 'desc' },
+      include: { proveedor: true }
+    });
+
+    const latestCuentasCobrar = await prisma.cuentaPorCobrar.findMany({
+      where: { estado: 'pendiente' },
+      take: 5,
+      orderBy: { createdAt: 'desc' },
+      include: { cliente: true }
+    });
+
     return NextResponse.json({
       metrics: {
         totalVentasMonto,
@@ -150,6 +170,11 @@ export async function GET(request) {
       tables: {
         criticosList,
         lotesProximos
+      },
+      details: {
+        latestVentas,
+        latestCompras,
+        latestCuentasCobrar
       }
     });
   } catch (error) {

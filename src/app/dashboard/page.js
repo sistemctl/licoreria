@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
+import Modal from '@/components/Modal';
 import { 
   SalesLineChart, 
   TopProductsBarChart, 
@@ -23,6 +24,7 @@ export default function DashboardHome() {
   const [reportData, setReportData] = useState(null);
   const [cajaAbierta, setCajaAbierta] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeModal, setActiveModal] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -80,7 +82,7 @@ export default function DashboardHome() {
     );
   }
 
-  const { metrics = {}, charts = {}, tables = {} } = reportData || {};
+  const { metrics = {}, charts = {}, tables = {}, details = {} } = reportData || {};
 
   return (
     <div className="dashboard-home">
@@ -105,7 +107,11 @@ export default function DashboardHome() {
 
       {/* Grid de Métricas */}
       <div className="grid-cols-4">
-        <div className="glass-panel metric-card">
+        <div 
+          className="glass-panel metric-card" 
+          onClick={() => setActiveModal('ventas')} 
+          style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+        >
           <div className="metric-icon gold-bg">
             <DollarSign size={24} />
           </div>
@@ -115,7 +121,11 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        <div className="glass-panel metric-card">
+        <div 
+          className="glass-panel metric-card" 
+          onClick={() => setActiveModal('transacciones')} 
+          style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+        >
           <div className="metric-icon green-bg">
             <TrendingUp size={24} />
           </div>
@@ -125,7 +135,11 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        <div className="glass-panel metric-card">
+        <div 
+          className="glass-panel metric-card" 
+          onClick={() => setActiveModal('compras')} 
+          style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+        >
           <div className="metric-icon red-bg">
             <ShoppingBag size={24} />
           </div>
@@ -135,7 +149,11 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        <div className="glass-panel metric-card">
+        <div 
+          className="glass-panel metric-card" 
+          onClick={() => setActiveModal('creditos')} 
+          style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+        >
           <div className="metric-icon orange-bg">
             <AlertTriangle size={24} />
           </div>
@@ -257,6 +275,212 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Ventas */}
+      <Modal 
+        isOpen={activeModal === 'ventas'} 
+        onClose={() => setActiveModal(null)} 
+        title="Detalle de Ventas (Últimos 30 días)"
+      >
+        <div className="modal-drilldown-content">
+          <div className="drilldown-summary">
+            <div className="summary-item">
+              <span className="summary-lbl">Total Recaudado:</span>
+              <span className="summary-val text-success font-bold">{formatCurrency(metrics.totalVentasMonto)}</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-lbl">Ticket Promedio:</span>
+              <span className="summary-val font-bold">
+                {formatCurrency(metrics.totalVentasMonto / (metrics.cantidadVentas || 1))}
+              </span>
+            </div>
+          </div>
+          
+          <h4 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '14px', color: 'var(--accent-gold)' }}>
+            Últimas 5 Ventas Registradas
+          </h4>
+          <div className="table-container">
+            <table className="custom-table" style={{ fontSize: '13px' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '8px 12px' }}>Venta ID</th>
+                  <th style={{ padding: '8px 12px' }}>Cliente</th>
+                  <th style={{ padding: '8px 12px' }}>Método</th>
+                  <th style={{ padding: '8px 12px' }} className="text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {details.latestVentas && details.latestVentas.length > 0 ? (
+                  details.latestVentas.map(v => (
+                    <tr key={v.id}>
+                      <td style={{ padding: '8px 12px' }}><strong>#{v.id}</strong></td>
+                      <td style={{ padding: '8px 12px' }}>{v.cliente?.nombre || 'General/Mostrador'}</td>
+                      <td style={{ padding: '8px 12px' }}>
+                        <span className="badge badge-success" style={{ fontSize: '9px', padding: '2px 6px' }}>
+                          {v.metodoPago}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 12px' }} className="text-right font-bold">{formatCurrency(v.total)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="text-center italic text-secondary" style={{ padding: '12px' }}>
+                      No hay ventas registradas recientemente.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: '20px', textAlign: 'right' }}>
+            <Link href="/dashboard/ventas" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+              Ver Historial Completo
+            </Link>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Transacciones */}
+      <Modal 
+        isOpen={activeModal === 'transacciones'} 
+        onClose={() => setActiveModal(null)} 
+        title="Desglose de Transacciones (30d)"
+      >
+        <div className="modal-drilldown-content">
+          <div className="drilldown-summary">
+            <div className="summary-item">
+              <span className="summary-lbl">Transacciones Exitosas:</span>
+              <span className="summary-val font-bold text-success">{metrics.cantidadVentas || 0}</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-lbl">Frecuencia:</span>
+              <span className="summary-val text-secondary">Aprox. {((metrics.cantidadVentas || 0) / 30).toFixed(1)} / día</span>
+            </div>
+          </div>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '16px', lineHeight: '1.5' }}>
+            Esta métrica representa el número de órdenes cerradas correctamente en tu punto de venta en el mes actual. Puedes hacer un seguimiento detallado, anular tickets o consultar comprobantes en la sección de Ventas.
+          </p>
+          <div style={{ marginTop: '24px', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <button onClick={() => setActiveModal(null)} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+              Cerrar
+            </button>
+            <Link href="/dashboard/pos" className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+              Ir al POS
+            </Link>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Compras */}
+      <Modal 
+        isOpen={activeModal === 'compras'} 
+        onClose={() => setActiveModal(null)} 
+        title="Detalle de Compras (Últimos 30 días)"
+      >
+        <div className="modal-drilldown-content">
+          <div className="drilldown-summary">
+            <div className="summary-item">
+              <span className="summary-lbl">Inversión en Inventario:</span>
+              <span className="summary-val text-danger font-bold">{formatCurrency(metrics.totalComprasMonto)}</span>
+            </div>
+          </div>
+          
+          <h4 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '14px', color: 'var(--accent-gold)' }}>
+            Últimos 5 Abastecimientos de Mercancía
+          </h4>
+          <div className="table-container">
+            <table className="custom-table" style={{ fontSize: '13px' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '8px 12px' }}>Factura #</th>
+                  <th style={{ padding: '8px 12px' }}>Proveedor</th>
+                  <th style={{ padding: '8px 12px' }} className="text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {details.latestCompras && details.latestCompras.length > 0 ? (
+                  details.latestCompras.map(c => (
+                    <tr key={c.id}>
+                      <td style={{ padding: '8px 12px' }}><strong>{c.numFacturaProveedor || `Compra #${c.id}`}</strong></td>
+                      <td style={{ padding: '8px 12px' }}>{c.proveedor?.nombre}</td>
+                      <td style={{ padding: '8px 12px' }} className="text-right font-bold">{formatCurrency(c.total)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3" className="text-center italic text-secondary" style={{ padding: '12px' }}>
+                      No hay compras registradas recientemente.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: '20px', textAlign: 'right' }}>
+            <Link href="/dashboard/compras" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+              Ver Todos los Abastecimientos
+            </Link>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Créditos */}
+      <Modal 
+        isOpen={activeModal === 'creditos'} 
+        onClose={() => setActiveModal(null)} 
+        title="Detalle de Cuentas por Cobrar"
+      >
+        <div className="modal-drilldown-content">
+          <div className="drilldown-summary">
+            <div className="summary-item">
+              <span className="summary-lbl">Saldo Total Pendiente:</span>
+              <span className="summary-val text-warning font-bold">{formatCurrency(metrics.totalPendienteCobro)}</span>
+            </div>
+          </div>
+          
+          <h4 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '14px', color: 'var(--accent-gold)' }}>
+            Líneas de Crédito Activas (Clientes)
+          </h4>
+          <div className="table-container">
+            <table className="custom-table" style={{ fontSize: '13px' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '8px 12px' }}>Cliente</th>
+                  <th style={{ padding: '8px 12px' }}>Vence</th>
+                  <th style={{ padding: '8px 12px' }} className="text-right">Saldo Pendiente</th>
+                </tr>
+              </thead>
+              <tbody>
+                {details.latestCuentasCobrar && details.latestCuentasCobrar.length > 0 ? (
+                  details.latestCuentasCobrar.map(cc => (
+                    <tr key={cc.id}>
+                      <td style={{ padding: '8px 12px' }}><strong>{cc.cliente?.nombre}</strong></td>
+                      <td style={{ padding: '8px 12px' }}>
+                        {cc.fechaLimite ? new Date(cc.fechaLimite).toLocaleDateString('es-ES') : 'Sin límite'}
+                      </td>
+                      <td style={{ padding: '8px 12px' }} className="text-right font-bold text-warning">
+                        {formatCurrency(cc.saldoPendiente)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3" className="text-center italic text-secondary" style={{ padding: '12px' }}>
+                      No hay cuentas por cobrar pendientes.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: '20px', textAlign: 'right' }}>
+            <Link href="/dashboard/cuentas-por-cobrar" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+              Gestionar Créditos y Abonos
+            </Link>
+          </div>
+        </div>
+      </Modal>
 
       <style jsx>{`
         .dashboard-home {
@@ -381,6 +605,39 @@ export default function DashboardHome() {
         .text-danger { color: var(--error-red); }
         .text-warning { color: var(--warning-orange); }
         .font-bold { font-weight: 600; }
+
+        .modal-drilldown-content {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .drilldown-summary {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+          background: rgba(212, 168, 83, 0.04);
+          border: 1px solid rgba(212, 168, 83, 0.12);
+          padding: 16px;
+          border-radius: 8px;
+        }
+        .summary-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .summary-lbl {
+          font-size: 11px;
+          text-transform: uppercase;
+          color: var(--text-secondary);
+          letter-spacing: 0.05em;
+        }
+        .summary-val {
+          font-size: 18px;
+          font-weight: 700;
+        }
+        .text-right {
+          text-align: right;
+        }
       `}</style>
     </div>
   );

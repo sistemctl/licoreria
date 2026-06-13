@@ -149,7 +149,7 @@ export default function Login() {
           <div className="right-side-text">
             <h3>Gestión Inteligente</h3>
             <p>
-              Sistema de licorería especializado y hecho a la medida. Optimiza el inventario, acelera tus transacciones y audita cada movimiento en tiempo real con una interfaz premium y fluida.
+              <strong className="text-gold">Sistema de licorería especializado y hecho a la medida</strong>. Optimiza el <strong className="text-gold">inventario</strong>, acelera tus <strong className="text-gold">transacciones</strong> y audita cada movimiento en <strong className="text-gold">tiempo real</strong> con una interfaz premium y fluida.
             </p>
           </div>
         </div>
@@ -165,45 +165,44 @@ export default function Login() {
           justify-content: center;
           background: var(--bg-color);
           overflow: hidden;
+          padding: 20px;
         }
 
         .login-container {
-          width: 100%;
-          height: 100%;
           display: flex;
+          width: 100%;
+          max-width: 940px;
+          height: 560px;
+          border-radius: 16px;
+          overflow: hidden;
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
         }
 
         .login-left-side {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 40px;
-          background: var(--bg-color);
-          z-index: 10;
-        }
-
-        .login-right-side {
-          flex: 1;
-          background: linear-gradient(135deg, #1e1b18 0%, #0c0b0a 100%);
+          flex: 0 0 50%;
+          width: 50%;
           display: flex;
           flex-direction: column;
-          align-items: center;
           justify-content: center;
-          padding: 40px;
-          position: relative;
-          border-left: 1px solid rgba(166, 124, 38, 0.1);
+          align-items: center;
+          padding: 48px;
+          background: transparent;
         }
 
         .login-card {
           width: 100%;
-          max-width: 420px;
+          max-width: 360px;
           display: flex;
           flex-direction: column;
-          gap: 24px;
-          border-color: rgba(212, 168, 83, 0.2);
-          box-shadow: 0 20px 40px rgba(0,0,0,0.03);
-          background: rgba(255, 255, 255, 0.9);
+          gap: 20px;
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
         }
 
         .login-header {
@@ -273,11 +272,23 @@ export default function Login() {
           font-size: 15px;
         }
 
-        /* Estilos Lado Derecho e Ilustraciones */
+        .login-right-side {
+          flex: 0 0 50%;
+          width: 50%;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          padding: 48px;
+          background: #ffffff;
+          border-left: 1px solid rgba(0, 0, 0, 0.08);
+          position: relative;
+        }
+
         .vector-art-wrapper {
           width: 100%;
-          max-width: 320px;
-          margin-bottom: 30px;
+          max-width: 260px;
+          margin-bottom: 24px;
           display: flex;
           justify-content: center;
         }
@@ -288,21 +299,26 @@ export default function Login() {
         }
 
         .right-side-text {
-          max-width: 440px;
+          max-width: 360px;
           text-align: center;
         }
 
         .right-side-text h3 {
           color: var(--accent-gold);
-          font-size: 24px;
+          font-size: 22px;
           font-weight: 700;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
 
         .right-side-text p {
-          color: #94a3b8;
-          font-size: 14px;
+          color: #475569;
+          font-size: 13px;
           line-height: 1.6;
+        }
+
+        .text-gold {
+          color: #a67c26;
+          font-weight: 700;
         }
 
         /* Animaciones CSS */
@@ -357,13 +373,19 @@ export default function Login() {
         }
 
         /* Responsividad */
-        @media (max-width: 992px) {
-          .login-right-side {
-            display: none;
+        @media (max-width: 868px) {
+          .login-container {
+            max-width: 440px;
+            height: auto;
+            min-height: 500px;
           }
           .login-left-side {
-            flex: 1;
+            flex: 0 0 100%;
             width: 100%;
+            padding: 32px;
+          }
+          .login-right-side {
+            display: none;
           }
         }
       `}</style>

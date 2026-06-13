@@ -66,8 +66,8 @@ export default function POSPage() {
         const catJson = await catRes.json();
         setCategorias(catJson);
 
-        // 3. Cargar productos
-        const prodRes = await fetch('/api/productos?activeOnly=true');
+        // 3. Cargar productos ordenados por popularidad (más vendidos primero)
+        const prodRes = await fetch('/api/productos?activeOnly=true&sortByPopularity=true');
         const prodJson = await prodRes.json();
         setProductos(prodJson);
 
@@ -625,9 +625,10 @@ export default function POSPage() {
       <style jsx>{`
         .pos-container {
           display: flex;
-          gap: 24px;
-          height: calc(100vh - 80px);
+          gap: 20px;
+          height: calc(100vh - 130px);
           width: 100%;
+          overflow: hidden;
         }
 
         .pos-loading {
@@ -654,11 +655,12 @@ export default function POSPage() {
         }
 
         .pos-left-panel {
-          width: 70%;
+          flex: 1;
           display: flex;
           flex-direction: column;
           gap: 20px;
           height: 100%;
+          min-width: 0;
         }
 
         .pos-search-header {
@@ -705,12 +707,16 @@ export default function POSPage() {
           font-size: 13px;
           font-weight: 500;
           white-space: nowrap;
-          transition: all 0.2s;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .tab-btn:hover {
           color: var(--text-primary);
           border-color: var(--accent-gold);
+        }
+
+        .tab-btn:active {
+          transform: scale(0.94);
         }
 
         .tab-btn.active {
@@ -736,12 +742,16 @@ export default function POSPage() {
           flex-direction: column;
           gap: 8px;
           height: 220px;
-          transition: all 0.2s ease;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .product-card:hover {
           transform: translateY(-2px);
           border-color: var(--accent-gold);
+        }
+
+        .product-card:active {
+          transform: scale(0.96);
         }
 
         .low-stock-border {
@@ -819,7 +829,8 @@ export default function POSPage() {
 
         /* Sección Derecha */
         .pos-right-panel {
-          width: 30%;
+          width: 380px;
+          flex-shrink: 0;
           height: 100%;
           display: flex;
           flex-direction: column;

@@ -6,7 +6,7 @@ import Table from '@/components/Table';
 import Modal from '@/components/Modal';
 import BarcodePrinter from '@/components/BarcodePrinter';
 import { formatCurrency } from '@/lib/utils';
-import { Plus, Edit2, Trash2, Printer } from 'lucide-react';
+import { Plus, Edit2, Trash2, Printer, Search } from 'lucide-react';
 
 export default function InventarioPage() {
   const [data, setData] = useState([]);
@@ -14,6 +14,9 @@ export default function InventarioPage() {
   const [loading, setLoading] = useState(true);
   const [searchVal, setSearchVal] = useState('');
   const [selectedCat, setSelectedCat] = useState('');
+  const [selectedBrand, setSelectedBrand] = useState('');
+  const [selectedStock, setSelectedStock] = useState('');
+  const [selectedEstado, setSelectedEstado] = useState('');
 
   // Modales y formularios
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -189,6 +192,9 @@ export default function InventarioPage() {
     setBarcodePrintPrice(prod.precioVentaDetal);
   };
 
+  // Obtener marcas únicas presentes en los productos
+  const brands = [...new Set(data.map(p => p.marca).filter(Boolean))];
+
   const filteredData = data.filter((p) => {
     if (p.esCombo) return false; // No mostrar combos aquí, se gestionan en su sección
     const matchesSearch = 
@@ -197,8 +203,15 @@ export default function InventarioPage() {
       (p.marca && p.marca.toLowerCase().includes(searchVal.toLowerCase()));
 
     const matchesCat = selectedCat === '' || p.categoriaId === parseInt(selectedCat);
+    const matchesBrand = selectedBrand === '' || p.marca === selectedBrand;
+    const matchesStock = selectedStock === '' || 
+      (selectedStock === 'bajo' && p.stock <= p.stockMinimo) || 
+      (selectedStock === 'normal' && p.stock > p.stockMinimo);
+    const matchesEstado = selectedEstado === '' ||
+      (selectedEstado === 'activo' && p.activo) ||
+      (selectedEstado === 'inactivo' && !p.activo);
 
-    return matchesSearch && matchesCat;
+    return matchesSearch && matchesCat && matchesBrand && matchesStock && matchesEstado;
   });
 
   const headers = ['Código', 'Nombre', 'Marca', 'Categoría', 'Pr. Compra', 'Pr. Venta', 'Stock', 'Estado', 'Acciones'];
@@ -207,20 +220,73 @@ export default function InventarioPage() {
     <div>
       <Header title="Inventario de Productos" />
 
-      {/* Acciones principales y Filtro de Categoría */}
+      {/* Acciones principales y Filtros */}
       <div className="table-actions glass-panel">
-        <div className="filter-group">
-          <label className="label-field compact-label">Categoría</label>
-          <select 
-            value={selectedCat} 
-            onChange={(e) => setSelectedCat(e.target.value)} 
-            className="input-field compact-select"
-          >
-            <option value="">Todas</option>
-            {categorias.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-            ))}
-          </select>
+        <div className="filters-container">
+          <div className="search-wrapper-inline">
+            <Search size={18} className="search-icon-inline" />
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre, código..." 
+              value={searchVal} 
+              onChange={(e) => setSearchVal(e.target.value)} 
+              className="input-field search-input-inline"
+            />
+          </div>
+
+          <div className="filter-group">
+            <label className="label-field compact-label">Categoría</label>
+            <select 
+              value={selectedCat} 
+              onChange={(e) => setSelectedCat(e.target.value)} 
+              className="input-field compact-select"
+            >
+              <option value="">Todas</option>
+              {categorias.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label className="label-field compact-label">Marca</label>
+            <select 
+              value={selectedBrand} 
+              onChange={(e) => setSelectedBrand(e.target.value)} 
+              className="input-field compact-select"
+            >
+              <option value="">Todas</option>
+              {brands.map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label className="label-field compact-label">Stock</label>
+            <select 
+              value={selectedStock} 
+              onChange={(e) => setSelectedStock(e.target.value)} 
+              className="input-field compact-select"
+            >
+              <option value="">Todos</option>
+              <option value="bajo">Stock Bajo</option>
+              <option value="normal">Stock Normal</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label className="label-field compact-label">Estado</label>
+            <select 
+              value={selectedEstado} 
+              onChange={(e) => setSelectedEstado(e.target.value)} 
+              className="input-field compact-select"
+            >
+              <option value="">Todos</option>
+              <option value="activo">Activos</option>
+              <option value="inactivo">Inactivos</option>
+            </select>
+          </div>
         </div>
 
         <button onClick={openNewModal} className="btn btn-primary">
@@ -246,9 +312,6 @@ export default function InventarioPage() {
           <Table
             headers={headers}
             data={filteredData}
-            searchVal={searchVal}
-            onSearchChange={setSearchVal}
-            searchPlaceholder="Buscar por nombre, código..."
             renderRow={(prod) => (
               <tr key={prod.id} className={prod.stock <= prod.stockMinimo ? 'low-stock-row' : ''}>
                 <td>{prod.codigoBarras || '-'}</td>
@@ -503,22 +566,70 @@ export default function InventarioPage() {
           justify-content: space-between;
           align-items: center;
           padding: 16px;
+          flex-wrap: wrap;
+          gap: 16px;
+        }
+
+        .filters-container {
+          display: flex;
+          align-items: center;
+          background: rgba(212, 168, 83, 0.05);
+          border: 1px solid rgba(212, 168, 83, 0.15);
+          border-radius: 30px;
+          padding: 2px 8px;
+          gap: 4px;
+          box-shadow: var(--shadow-sm);
         }
 
         .filter-group {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 6px;
+          border-left: 1px solid rgba(212, 168, 83, 0.15);
+          padding-left: 10px;
+          margin-left: 6px;
         }
 
         .compact-label {
           margin-bottom: 0;
-          font-size: 11px;
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-secondary);
         }
 
         .compact-select {
-          padding: 8px 12px;
-          width: 180px;
+          padding: 6px 24px 6px 8px;
+          border: none !important;
+          background: transparent !important;
+          color: var(--text-primary);
+          font-size: 13px;
+          cursor: pointer;
+          width: auto;
+          min-width: 90px;
+          box-shadow: none !important;
+        }
+
+        .search-wrapper-inline {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 200px;
+        }
+
+        .search-icon-inline {
+          position: absolute;
+          left: 8px;
+          color: var(--text-secondary);
+          pointer-events: none;
+        }
+
+        .search-input-inline {
+          border: none !important;
+          background: transparent !important;
+          padding-left: 32px !important;
+          font-size: 13px !important;
+          box-shadow: none !important;
         }
 
         .table-row-actions {
@@ -530,6 +641,70 @@ export default function InventarioPage() {
           display: flex;
           flex-direction: column;
           gap: 2px;
+        }
+
+        .price-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .price-label-small {
+          font-size: 10px;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+        }
+
+        .product-info-cell {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .product-name-title {
+          font-size: 14px;
+          color: var(--text-primary);
+        }
+
+        .product-meta-sub {
+          display: flex;
+          gap: 12px;
+          font-size: 11px;
+          color: var(--text-secondary);
+        }
+
+        .meta-item {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          padding: 1px 6px;
+          border-radius: 4px;
+        }
+
+        .category-cell-text {
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+
+        .stock-column {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .stock-min-sub {
+          font-size: 10px;
+          color: var(--text-secondary);
+        }
+
+        .low-stock-badge-new {
+          align-self: flex-start;
+          font-size: 9px;
+          margin-top: 2px;
+        }
+
+        .font-mono {
+          font-family: monospace;
+          font-size: 13px;
         }
 
         .text-xs { font-size: 11px; }

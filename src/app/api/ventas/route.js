@@ -322,7 +322,7 @@ export async function PUT(request) {
         if (cxc) {
           await tx.cuentaPorCobrar.update({
             where: { id: cxc.id },
-            data: { estado: 'anulada', saldoPendiente: 0 }
+            data: { estado: 'pagada', saldoPendiente: 0 }
           });
 
           // Restar saldo pendiente al cliente

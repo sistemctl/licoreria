@@ -9,7 +9,7 @@ export default withAuth({
 export const config = {
   matcher: [
     '/dashboard/:path*',
-    // Proteger APIs excepto auth y config inicial si fuese necesario
-    '/api/((?!auth|login).*)',
+    // Proteger APIs excepto auth, login y configuracion
+    '/api/((?!auth|login|configuracion).*)',
   ],
 };

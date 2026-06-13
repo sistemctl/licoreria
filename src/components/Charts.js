@@ -56,7 +56,7 @@ const commonOptions = {
   }
 };
 
-export function SalesLineChart({ labels = [], data = [] }) {
+export function SalesLineChart({ labels = [], data = [], onChartClick }) {
   const chartData = {
     labels,
     datasets: [
@@ -72,14 +72,28 @@ export function SalesLineChart({ labels = [], data = [] }) {
     ]
   };
 
+  const lineOptions = {
+    ...commonOptions,
+    onClick: (event, elements, chart) => {
+      if (elements && elements.length > 0 && onChartClick) {
+        const index = elements[0].index;
+        onChartClick({
+          label: chart.data.labels[index],
+          value: chart.data.datasets[elements[0].datasetIndex].data[index],
+          index
+        });
+      }
+    }
+  };
+
   return (
-    <div style={{ height: '300px', width: '100%' }}>
-      <Line data={chartData} options={commonOptions} />
+    <div style={{ height: '300px', width: '100%', cursor: onChartClick ? 'pointer' : 'default' }}>
+      <Line data={chartData} options={lineOptions} />
     </div>
   );
 }
 
-export function TopProductsBarChart({ labels = [], data = [] }) {
+export function TopProductsBarChart({ labels = [], data = [], onChartClick }) {
   const chartData = {
     labels,
     datasets: [
@@ -94,14 +108,28 @@ export function TopProductsBarChart({ labels = [], data = [] }) {
     ]
   };
 
+  const barOptions = {
+    ...commonOptions,
+    onClick: (event, elements, chart) => {
+      if (elements && elements.length > 0 && onChartClick) {
+        const index = elements[0].index;
+        onChartClick({
+          label: chart.data.labels[index],
+          value: chart.data.datasets[elements[0].datasetIndex].data[index],
+          index
+        });
+      }
+    }
+  };
+
   return (
-    <div style={{ height: '300px', width: '100%' }}>
-      <Bar data={chartData} options={commonOptions} />
+    <div style={{ height: '300px', width: '100%', cursor: onChartClick ? 'pointer' : 'default' }}>
+      <Bar data={chartData} options={barOptions} />
     </div>
   );
 }
 
-export function SalesByCategoryPieChart({ labels = [], data = [] }) {
+export function SalesByCategoryPieChart({ labels = [], data = [], onChartClick }) {
   const chartData = {
     labels,
     datasets: [
@@ -136,17 +164,27 @@ export function SalesByCategoryPieChart({ labels = [], data = [] }) {
           font: { family: 'Inter', size: 11 }
         }
       }
+    },
+    onClick: (event, elements, chart) => {
+      if (elements && elements.length > 0 && onChartClick) {
+        const index = elements[0].index;
+        onChartClick({
+          label: chart.data.labels[index],
+          value: chart.data.datasets[elements[0].datasetIndex].data[index],
+          index
+        });
+      }
     }
   };
 
   return (
-    <div style={{ height: '300px', width: '100%' }}>
+    <div style={{ height: '300px', width: '100%', cursor: onChartClick ? 'pointer' : 'default' }}>
       <Pie data={chartData} options={pieOptions} />
     </div>
   );
 }
 
-export function PaymentMethodsPieChart({ labels = [], data = [] }) {
+export function PaymentMethodsPieChart({ labels = [], data = [], onChartClick }) {
   const chartData = {
     labels,
     datasets: [
@@ -176,11 +214,21 @@ export function PaymentMethodsPieChart({ labels = [], data = [] }) {
           font: { family: 'Inter', size: 11 }
         }
       }
+    },
+    onClick: (event, elements, chart) => {
+      if (elements && elements.length > 0 && onChartClick) {
+        const index = elements[0].index;
+        onChartClick({
+          label: chart.data.labels[index],
+          value: chart.data.datasets[elements[0].datasetIndex].data[index],
+          index
+        });
+      }
     }
   };
 
   return (
-    <div style={{ height: '300px', width: '100%' }}>
+    <div style={{ height: '300px', width: '100%', cursor: onChartClick ? 'pointer' : 'default' }}>
       <Pie data={chartData} options={pieOptions} />
     </div>
   );

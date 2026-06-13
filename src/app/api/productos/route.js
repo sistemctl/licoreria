@@ -9,6 +9,7 @@ export async function GET(request) {
     const categoriaId = searchParams.get('categoriaId');
     const activeOnly = searchParams.get('activeOnly') !== 'false';
     const barcode = searchParams.get('barcode');
+    const sortByPopularity = searchParams.get('sortByPopularity') === 'true';
     const lowStock = searchParams.get('lowStock') === 'true';
 
     // Query filters
@@ -44,6 +45,33 @@ export async function GET(request) {
     let result = productos;
     if (lowStock) {
       result = productos.filter(p => p.stock <= p.stockMinimo);
+    }
+
+    if (sortByPopularity) {
+      try {
+        const popularMap = {};
+        const popularityData = await prisma.ventaDetalle.groupBy({
+          by: ['productoId'],
+          _sum: {
+            cantidad: true
+          }
+        });
+        
+        popularityData.forEach(p => {
+          popularMap[p.productoId] = p._sum.cantidad || 0;
+        });
+
+        result.sort((a, b) => {
+          const salesA = popularMap[a.id] || 0;
+          const salesB = popularMap[b.id] || 0;
+          if (salesB !== salesA) {
+            return salesB - salesA; // De mayor a menor ventas
+          }
+          return a.nombre.localeCompare(b.nombre); // Orden alfabético si hay empate
+        });
+      } catch (err) {
+        console.error('Error al ordenar por popularidad:', err);
+      }
     }
 
     return NextResponse.json(result);

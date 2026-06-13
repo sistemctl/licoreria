@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import { Save, CheckCircle } from 'lucide-react';
+import { useConfig } from '@/components/ConfigProvider';
 
 export default function ConfiguracionPage() {
   const [configs, setConfigs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { updateConfigState } = useConfig();
   
   // States para cada clave
   const [nombreNegocio, setNombreNegocio] = useState('');
@@ -18,6 +20,8 @@ export default function ConfiguracionPage() {
   const [prefijoFactura, setPrefijoFactura] = useState('');
   const [siguienteNumFactura, setSiguienteNumFactura] = useState('');
   const [diasAlertaVencimiento, setDiasAlertaVencimiento] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [colorTema, setColorTema] = useState('#a67c26');
 
   const [mensajeExito, setMensajeExito] = useState('');
   const [cargandoGuardado, setCargandoGuardado] = useState(false);
@@ -37,6 +41,8 @@ export default function ConfiguracionPage() {
       setPrefijoFactura(map.prefijo_factura || 'FAC-');
       setSiguienteNumFactura(map.siguiente_num_factura || '1');
       setDiasAlertaVencimiento(map.dias_alerta_vencimiento || '15');
+      setLogoUrl(map.logo_url || '');
+      setColorTema(map.color_tema || '#a67c26');
 
       setConfigs(json.configs);
     } catch (e) {
@@ -64,7 +70,9 @@ export default function ConfiguracionPage() {
       impuesto_porcentaje: impuestoPorcentaje,
       prefijo_factura: prefijoFactura,
       siguiente_num_factura: siguienteNumFactura,
-      dias_alerta_vencimiento: diasAlertaVencimiento
+      dias_alerta_vencimiento: diasAlertaVencimiento,
+      logo_url: logoUrl,
+      color_tema: colorTema
     };
 
     try {
@@ -76,6 +84,7 @@ export default function ConfiguracionPage() {
       const json = await res.json();
       if (!json.error) {
         setMensajeExito('Ajustes del sistema guardados con éxito.');
+        updateConfigState(payload); // Actualiza el contexto global al instante
         setTimeout(() => setMensajeExito(''), 4000);
       }
     } catch (err) {
@@ -204,6 +213,39 @@ export default function ConfiguracionPage() {
                 onChange={(e) => setDiasAlertaVencimiento(e.target.value)} 
                 className="input-field" 
               />
+            </div>
+
+            <div className="form-divider span-2">Personalización Visual</div>
+
+            <div className="form-group span-2">
+              <label className="label-field">URL del Logo del Establecimiento</label>
+              <input 
+                type="text" 
+                value={logoUrl} 
+                onChange={(e) => setLogoUrl(e.target.value)} 
+                className="input-field" 
+                placeholder="Ej. https://tuservidor.com/logo.png"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="label-field">Color de Acento del Tema</label>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <input 
+                  type="color" 
+                  value={colorTema} 
+                  onChange={(e) => setColorTema(e.target.value)} 
+                  style={{ width: '50px', height: '40px', border: '1px solid var(--panel-border)', borderRadius: '8px', cursor: 'pointer', background: 'transparent', padding: '2px' }}
+                />
+                <input 
+                  type="text" 
+                  value={colorTema} 
+                  onChange={(e) => setColorTema(e.target.value)} 
+                  className="input-field" 
+                  placeholder="#a67c26"
+                  style={{ flex: 1 }}
+                />
+              </div>
             </div>
           </div>
 

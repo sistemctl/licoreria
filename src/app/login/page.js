@@ -7,17 +7,17 @@ import { KeyRound, Mail, AlertCircle } from 'lucide-react';
 import { useConfig } from '@/components/ConfigProvider';
 
 export default function Login() {
-  const { configs } = useConfig();
+  const { configs, loading } = useConfig();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setLoadingSubmit(true);
 
     try {
       const res = await signIn('credentials', {
@@ -35,7 +35,7 @@ export default function Login() {
     } catch (err) {
       setError('Ocurrió un error inesperado. Inténtelo más tarde.');
     } finally {
-      setLoading(false);
+      setLoadingSubmit(false);
     }
   };
 
@@ -45,20 +45,29 @@ export default function Login() {
         
         {/* Panel Izquierdo: Formulario de Acceso */}
         <div className="login-left-side">
-          <div className="login-card glass-panel animate-fade-in">
-            <div className="login-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          <div className="login-card glass-panel" style={{ opacity: loading ? 0 : 1, transition: 'opacity 0.25s ease' }}>
+            <div className="login-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '4px' }}>
               {configs?.logo_url ? (
-                <img 
-                  src={configs.logo_url} 
-                  alt={configs.nombre_negocio || 'Logo'} 
-                  style={{
-                    maxWidth: '80px',
-                    maxHeight: '80px',
-                    objectFit: 'contain',
-                    marginBottom: '16px',
-                    borderRadius: '8px'
-                  }}
-                />
+                <div style={{
+                  width: '72px',
+                  height: '72px',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  background: '#ffffff',
+                  border: '1.5px solid var(--accent-gold)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '12px',
+                  padding: '6px'
+                }}>
+                  <img 
+                    src={configs.logo_url} 
+                    alt={configs.nombre_negocio || 'Logo'} 
+                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+                  />
+                </div>
               ) : null}
               <h2>{configs?.nombre_negocio || 'Mi Licorería'}</h2>
               <p>Ingresa a tu cuenta para gestionar el negocio</p>
@@ -102,8 +111,8 @@ export default function Login() {
                 </div>
               </div>
 
-              <button type="submit" disabled={loading} className="btn btn-primary w-full login-btn">
-                {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              <button type="submit" disabled={loadingSubmit} className="btn btn-primary w-full login-btn">
+                {loadingSubmit ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </button>
             </form>
           </div>

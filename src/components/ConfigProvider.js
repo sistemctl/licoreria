@@ -38,12 +38,14 @@ export function ConfigProvider({ children }) {
       const res = await fetch('/api/configuracion', { cache: 'no-store' });
       const json = await res.json();
       if (json && json.configMap) {
-        setConfigs({
+        const loadedConfigs = {
           nombre_negocio: json.configMap.nombre_negocio || 'Mi Licorería',
           logo_url: json.configMap.logo_url || '',
           color_tema: json.configMap.color_tema || '#a67c26',
           moneda_simbolo: json.configMap.moneda_simbolo || '$'
-        });
+        };
+        setConfigs(loadedConfigs);
+        localStorage.setItem('system_config', JSON.stringify(loadedConfigs));
       }
     } catch (e) {
       console.error('Error fetching configurations:', e);
@@ -53,8 +55,37 @@ export function ConfigProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('system_config');
+      if (cached) {
+        try {
+          setConfigs(JSON.parse(cached));
+        } catch (e) {}
+      }
+    }
     fetchConfigs();
   }, [fetchConfigs]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      document.title = `${configs.nombre_negocio || 'Mi Licorería'} - Sistema de Gestión`;
+      
+      const logoUrl = configs.logo_url || '/favicon.ico';
+      
+      // Update any existing icon link elements
+      const links = document.querySelectorAll("link[rel*='icon']");
+      if (links.length > 0) {
+        links.forEach(link => {
+          link.href = logoUrl;
+        });
+      } else {
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.href = logoUrl;
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+    }
+  }, [configs]);
 
   const updateConfigState = (newConfigs) => {
     setConfigs(prev => ({ ...prev, ...newConfigs }));

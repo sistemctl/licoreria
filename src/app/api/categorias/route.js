@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { requireAnyPermission, requirePermission } from '@/lib/permissions';
 
 export async function GET(request) {
   try {
+    const auth = await requireAnyPermission(['categorias', 'inventario', 'pos', 'combos', 'descuentos', 'compras']);
+    if (auth.response) return auth.response;
+
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q') || '';
     const activeOnly = searchParams.get('activeOnly') !== 'false';
@@ -29,6 +33,9 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const auth = await requirePermission('categorias');
+    if (auth.response) return auth.response;
+
     const body = await request.json();
     const { nombre, descripcion } = body;
 
@@ -55,6 +62,9 @@ export async function POST(request) {
 
 export async function PUT(request) {
   try {
+    const auth = await requirePermission('categorias');
+    if (auth.response) return auth.response;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -94,6 +104,9 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   try {
+    const auth = await requirePermission('categorias');
+    if (auth.response) return auth.response;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

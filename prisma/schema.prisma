@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ===================== SEGURIDAD =====================
@@ -87,6 +86,8 @@ model Producto {
   devolucionDetalles DevolucionDetalle[]
   descuentoProductos DescuentoProducto[]
 
+  @@index([categoriaId])
+  @@index([activo])
   @@map("productos")
 }
 
@@ -290,6 +291,10 @@ model Venta {
   devoluciones        Devolucion[]
   cuentasPorCobrar    CuentaPorCobrar[]
 
+  @@index([usuarioId])
+  @@index([clienteId])
+  @@index([cajaTurnoId])
+  @@index([fecha])
   @@map("ventas")
 }
 
@@ -306,6 +311,8 @@ model VentaDetalle {
   venta           Venta     @relation(fields: [ventaId], references: [id])
   producto        Producto  @relation(fields: [productoId], references: [id])
 
+  @@index([ventaId])
+  @@index([productoId])
   @@map("venta_detalles")
 }
 
@@ -357,6 +364,8 @@ model CajaTurno {
   usuario              Usuario   @relation(fields: [usuarioId], references: [id])
   ventas               Venta[]
 
+  @@index([usuarioId])
+  @@index([estado])
   @@map("caja_turnos")
 }
 

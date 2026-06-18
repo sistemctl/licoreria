@@ -45,7 +45,7 @@ export default function Login() {
         
         {/* Panel Izquierdo: Formulario de Acceso */}
         <div className="login-left-side">
-          <div className="login-card glass-panel" style={{ opacity: loading ? 0 : 1, transition: 'opacity 0.25s ease' }}>
+          <div className="login-card glass-panel">
             <div className="login-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '4px' }}>
               {configs?.logo_url ? (
                 <div style={{

@@ -16,7 +16,7 @@ import {
   PlusCircle, 
   Ticket 
 } from 'lucide-react';
-import jsPDF from 'jspdf';
+
 
 export default function POSPage() {
   const { data: session } = useSession();
@@ -287,8 +287,9 @@ export default function POSPage() {
     }
   };
 
-  const generarTicketPDF = (ventaObj) => {
+  const generarTicketPDF = async (ventaObj) => {
     try {
+      const { default: jsPDF } = await import('jspdf');
       const doc = new jsPDF({
         unit: 'mm',
         format: [80, 150] // Ticket de 80mm

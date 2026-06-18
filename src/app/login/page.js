@@ -15,6 +15,7 @@ export default function Login() {
   const router = useRouter();
 
   const handleSubmit = async (e) => {
+    console.log('handleSubmit executing...');
     e.preventDefault();
     setError('');
     setLoadingSubmit(true);

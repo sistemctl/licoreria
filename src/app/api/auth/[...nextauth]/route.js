@@ -17,8 +17,14 @@ const handler = async (req, ctx) => {
   if (host) {
     process.env.NEXTAUTH_URL = `${protocol}://${host}`;
   }
+
+  // Force secure cookies ONLY if protocol is https, preventing cookie rejection on HTTP local IPs
+  const dynamicAuthOptions = {
+    ...authOptions,
+    useSecureCookies: protocol === 'https'
+  };
   
-  return NextAuth(authOptions)(req, ctx);
+  return NextAuth(dynamicAuthOptions)(req, ctx);
 };
 
 export { handler as GET, handler as POST };

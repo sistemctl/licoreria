@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Header from '@/components/Header';
 import Table from '@/components/Table';
 import Modal from '@/components/Modal';
@@ -8,6 +9,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { PlusCircle, MinusCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export default function CajaPage() {
+  const { data: session, status } = useSession();
   const [turnos, setTurnos] = useState([]);
   const [cajaAbierta, setCajaAbierta] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,8 +52,37 @@ export default function CajaPage() {
   }
 
   useEffect(() => {
-    loadCajaData();
-  }, []);
+    if (status === 'authenticated' && session?.user?.rol?.permisos?.caja) {
+      loadCajaData();
+    }
+  }, [status, session]);
+
+  if (status === 'loading') {
+    return (
+      <div>
+        <Header title="Control de Caja y Turnos" />
+        <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
+          <p>Cargando información de sesión...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const permisos = session?.user?.rol?.permisos || {};
+  if (!permisos.caja) {
+    return (
+      <div>
+        <Header title="Acceso Denegado" />
+        <div className="glass-panel" style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', textAlign: 'center' }}>
+          <AlertTriangle size={48} className="text-warning" />
+          <h2 style={{ color: 'var(--text-primary)', fontSize: '20px' }}>No tienes permiso para acceder a la Caja</h2>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', fontSize: '14px', lineHeight: '1.5' }}>
+            Esta sección de administración de Caja y Turnos está restringida. Contacta a un administrador si necesitas permisos.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleAbrirCaja = async (e) => {
     e.preventDefault();

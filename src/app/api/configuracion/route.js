@@ -24,8 +24,11 @@ export async function GET(request) {
 export async function PUT(request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+    if (!session?.user?.rol?.permisos?.configuracion) {
+      return NextResponse.json({ error: 'No autorizado (Falta permiso de configuración)' }, { status: 403 });
     }
 
     const body = await request.json(); // Se espera un objeto { clave1: valor1, clave2: valor2 }

@@ -137,8 +137,8 @@ export default function Sidebar() {
         }
 
         .sidebar-brand {
-          padding: 24px;
-          border-bottom: 1px solid rgba(212, 168, 83, 0.1);
+          padding: 24px 16px;
+          border-bottom: 1px solid rgba(212, 168, 83, 0.08);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -147,31 +147,42 @@ export default function Sidebar() {
         }
 
         .sidebar-brand h2 {
-          color: var(--accent-gold);
-          font-size: 20px;
-          letter-spacing: 1px;
+          color: #8b0000; /* Cohesive with Evaluna brand crimson */
+          font-size: 22px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
           margin: 0;
           text-align: center;
         }
 
         .sidebar-logo {
-          max-height: 54px;
-          max-width: 100%;
+          max-height: 64px;
+          max-width: 80%;
           object-fit: contain;
           border-radius: 8px;
+          transition: transform 0.2s ease;
+        }
+
+        .sidebar-logo:hover {
+          transform: scale(1.05);
         }
 
         .sidebar-user-info {
-          padding: 16px 24px;
+          padding: 18px 24px;
           border-bottom: 1px solid rgba(212, 168, 83, 0.05);
           display: flex;
           flex-direction: column;
+          align-items: center;
+          justify-content: center;
           gap: 6px;
+          text-align: center;
+          background: rgba(212, 168, 83, 0.015);
         }
 
         .user-name {
-          font-weight: 600;
+          font-weight: 700;
           font-size: 14px;
+          color: var(--text-primary);
         }
 
         .sidebar-menu {

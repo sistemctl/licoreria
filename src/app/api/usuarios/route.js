@@ -2,9 +2,19 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/audit';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+    if (!session?.user?.rol?.permisos?.usuarios) {
+      return NextResponse.json({ error: 'No autorizado (Falta permiso de usuarios)' }, { status: 403 });
+    }
+
     const users = await prisma.usuario.findMany({
       include: {
         rol: true
@@ -26,16 +36,24 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { nombre, email, password, rolId } = body;
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+    if (!session?.user?.rol?.permisos?.usuarios) {
+      return NextResponse.json({ error: 'No autorizado (Falta permiso de usuarios)' }, { status: 403 });
+    }
 
-    if (!nombre || !email || !password || !rolId) {
+    const body = await request.json();
+    const { nombre, username, password, rolId } = body;
+
+    if (!nombre || !username || !password || !rolId) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
-    const existe = await prisma.usuario.findUnique({ where: { email } });
+    const existe = await prisma.usuario.findUnique({ where: { username } });
     if (existe) {
-      return NextResponse.json({ error: 'El correo electrónico ya está registrado' }, { status: 400 });
+      return NextResponse.json({ error: 'El nombre de usuario ya está registrado' }, { status: 400 });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
@@ -43,7 +61,7 @@ export async function POST(request) {
     const nuevo = await prisma.usuario.create({
       data: {
         nombre,
-        email,
+        username,
         passwordHash,
         rolId: parseInt(rolId),
         activo: true
@@ -67,6 +85,14 @@ export async function POST(request) {
 
 export async function PUT(request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+    if (!session?.user?.rol?.permisos?.usuarios) {
+      return NextResponse.json({ error: 'No autorizado (Falta permiso de usuarios)' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -75,7 +101,7 @@ export async function PUT(request) {
     }
 
     const body = await request.json();
-    const { nombre, email, password, rolId, activo } = body;
+    const { nombre, username, password, rolId, activo } = body;
 
     const anterior = await prisma.usuario.findUnique({
       where: { id: parseInt(id) }
@@ -85,16 +111,16 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    if (email && email !== anterior.email) {
-      const existe = await prisma.usuario.findUnique({ where: { email } });
+    if (username && username !== anterior.username) {
+      const existe = await prisma.usuario.findUnique({ where: { username } });
       if (existe) {
-        return NextResponse.json({ error: 'El correo electrónico ya está registrado' }, { status: 400 });
+        return NextResponse.json({ error: 'El nombre de usuario ya está registrado' }, { status: 400 });
       }
     }
 
     const updateData = {
       nombre: nombre !== undefined ? nombre : anterior.nombre,
-      email: email !== undefined ? email : anterior.email,
+      username: username !== undefined ? username : anterior.username,
       rolId: rolId !== undefined ? parseInt(rolId) : anterior.rolId,
       activo: activo !== undefined ? !!activo : anterior.activo
     };
@@ -114,7 +140,7 @@ export async function PUT(request) {
       accion: 'EDITAR_USUARIO',
       tablaAfectada: 'usuarios',
       registroId: cleanUser.id,
-      datosAnteriores: { nombre: anterior.nombre, email: anterior.email, rolId: anterior.rolId, activo: anterior.activo },
+      datosAnteriores: { nombre: anterior.nombre, username: anterior.username, rolId: anterior.rolId, activo: anterior.activo },
       datosNuevos: cleanUser
     });
 
@@ -126,6 +152,14 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+    if (!session?.user?.rol?.permisos?.usuarios) {
+      return NextResponse.json({ error: 'No autorizado (Falta permiso de usuarios)' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -152,7 +186,7 @@ export async function DELETE(request) {
       accion: 'DESACTIVAR_USUARIO',
       tablaAfectada: 'usuarios',
       registroId: cleanUser.id,
-      datosAnteriores: { nombre: anterior.nombre, email: anterior.email, rolId: anterior.rolId, activo: anterior.activo },
+      datosAnteriores: { nombre: anterior.nombre, username: anterior.username, rolId: anterior.rolId, activo: anterior.activo },
       datosNuevos: cleanUser
     });
 

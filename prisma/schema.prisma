@@ -21,7 +21,7 @@ model Rol {
 model Usuario {
   id               Int        @id @default(autoincrement())
   nombre           String     @db.VarChar(100)
-  email            String     @unique @db.VarChar(150)
+  username         String     @unique @map("email") @db.VarChar(150)
   passwordHash     String     @map("password_hash") @db.VarChar(255)
   rolId            Int        @map("rol_id")
   activo           Boolean    @default(true)

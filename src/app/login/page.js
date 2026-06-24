@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { KeyRound, Mail, AlertCircle } from 'lucide-react';
+import { KeyRound, User, AlertCircle } from 'lucide-react';
 import { useConfig } from '@/components/ConfigProvider';
 
 export default function Login() {
   const { configs, loading } = useConfig();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loadingSubmit, setLoadingSubmit] = useState(false);
@@ -22,7 +22,7 @@ export default function Login() {
 
     try {
       const res = await signIn('credentials', {
-        email,
+        username,
         password,
         redirect: false,
       });
@@ -83,36 +83,36 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="login-form">
               <div className="form-group">
-                <label className="label-field">Correo Electrónico</label>
+                <label className="label-field" style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '11px', textTransform: 'uppercase', marginBottom: '6px', fontWeight: '500', letterSpacing: '0.05em' }}>Nombre de Usuario</label>
                 <div className="input-with-icon">
-                  <Mail size={16} className="input-icon" />
                   <input
-                    type="email"
+                    type="text"
                     required
-                    placeholder="ejemplo@licoreria.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="input-field"
+                    placeholder="Escriba su usuario"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="login-input-field"
                   />
+                  <User size={16} className="input-icon" />
                 </div>
               </div>
 
               <div className="form-group">
-                <label className="label-field">Contraseña</label>
+                <label className="label-field" style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '11px', textTransform: 'uppercase', marginBottom: '6px', fontWeight: '500', letterSpacing: '0.05em' }}>Contraseña</label>
                 <div className="input-with-icon">
-                  <KeyRound size={16} className="input-icon" />
                   <input
                     type="password"
                     required
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="input-field"
+                    className="login-input-field"
                   />
+                  <KeyRound size={16} className="input-icon" />
                 </div>
               </div>
 
-              <button type="submit" disabled={loadingSubmit} className="btn btn-primary w-full login-btn">
+              <button type="submit" disabled={loadingSubmit} className="btn login-btn">
                 {loadingSubmit ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </button>
             </form>
@@ -178,7 +178,6 @@ export default function Login() {
             </p>
           </div>
         </div>
-
       </div>
 
       <style jsx>{`
@@ -188,7 +187,7 @@ export default function Login() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--bg-color);
+          background: radial-gradient(circle at 50% 50%, #f8fafc 0%, #e2e8f0 100%);
           overflow: hidden;
           padding: 20px;
         }
@@ -198,13 +197,11 @@ export default function Login() {
           width: 100%;
           max-width: 940px;
           height: 560px;
-          border-radius: 16px;
+          border-radius: 20px;
           overflow: hidden;
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
         }
 
         .login-left-side {
@@ -215,7 +212,7 @@ export default function Login() {
           justify-content: center;
           align-items: center;
           padding: 48px;
-          background: transparent;
+          background: #ffffff;
         }
 
         .login-card {
@@ -235,14 +232,15 @@ export default function Login() {
         }
 
         .login-header h2 {
-          color: var(--accent-gold);
+          color: #1e293b;
           font-size: 28px;
           margin-bottom: 8px;
-          letter-spacing: 1px;
+          letter-spacing: 0.5px;
+          font-weight: 700;
         }
 
         .login-header p {
-          color: var(--text-secondary);
+          color: #64748b;
           font-size: 14px;
         }
 
@@ -273,28 +271,65 @@ export default function Login() {
           position: relative;
           display: flex;
           align-items: center;
-        }
-
-        .input-icon {
-          position: absolute;
-          left: 14px;
-          color: var(--text-secondary);
-        }
-
-        .input-with-icon :global(.input-field) {
-          padding-left: 44px;
-          background: rgba(255, 255, 255, 0.8);
-          border-color: rgba(0, 0, 0, 0.08);
-        }
-
-        .w-full {
           width: 100%;
         }
 
+        :global(.input-icon) {
+          position: absolute;
+          left: 16px;
+          color: #64748b;
+          opacity: 0.7;
+          z-index: 5;
+          pointer-events: none;
+          transition: all 0.3s ease;
+        }
+
+        .login-input-field {
+          width: 100%;
+          padding: 14px 16px 14px 44px;
+          background: #f8fafc;
+          border: 1px solid #cbd5e1;
+          border-radius: 10px;
+          color: #1e293b;
+          font-size: 14px;
+          outline: none;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .login-input-field:focus {
+          border-color: var(--accent-gold);
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.15);
+        }
+
+        .login-input-field:focus + :global(.input-icon) {
+          color: var(--accent-gold);
+          opacity: 1;
+        }
+
+        .login-input-field::placeholder {
+          color: #94a3b8;
+        }
+
         .login-btn {
-          margin-top: 8px;
-          height: 48px;
+          margin-top: 12px;
+          height: 50px;
           font-size: 15px;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+          background: linear-gradient(135deg, #8a1717 0%, #a32222 100%);
+          border: none;
+          color: #ffffff;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(138, 23, 23, 0.2);
+        }
+
+        .login-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(138, 23, 23, 0.3);
+          background: linear-gradient(135deg, #a32222 0%, #8a1717 100%);
         }
 
         .login-right-side {
@@ -305,8 +340,8 @@ export default function Login() {
           justify-content: center;
           align-items: center;
           padding: 48px;
-          background: #ffffff;
-          border-left: 1px solid rgba(0, 0, 0, 0.08);
+          background: #f1f5f9;
+          border-left: 1px solid rgba(0, 0, 0, 0.05);
           position: relative;
         }
 

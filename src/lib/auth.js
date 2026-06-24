@@ -7,16 +7,16 @@ export const authOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
+        username: { label: "Usuario", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email y contraseña requeridos');
+        if (!credentials?.username || !credentials?.password) {
+          throw new Error('Usuario y contraseña requeridos');
         }
 
         const user = await prisma.usuario.findUnique({
-          where: { email: credentials.email },
+          where: { username: credentials.username },
           include: { rol: true }
         });
 
@@ -96,7 +96,7 @@ export const authOptions = {
         return {
           id: user.id,
           name: user.nombre,
-          email: user.email,
+          email: user.username,
           rol: {
             id: user.rol.id,
             nombre: user.rol.nombre,

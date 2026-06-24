@@ -235,13 +235,12 @@ export default function InventarioPage() {
           </div>
 
           <div className="filter-group">
-            <label className="label-field compact-label">Categoría</label>
             <select 
               value={selectedCat} 
               onChange={(e) => setSelectedCat(e.target.value)} 
               className="input-field compact-select"
             >
-              <option value="">Todas</option>
+              <option value="">Categoría: Todas</option>
               {categorias.map(cat => (
                 <option key={cat.id} value={cat.id}>{cat.nombre}</option>
               ))}
@@ -249,13 +248,12 @@ export default function InventarioPage() {
           </div>
 
           <div className="filter-group">
-            <label className="label-field compact-label">Marca</label>
             <select 
               value={selectedBrand} 
               onChange={(e) => setSelectedBrand(e.target.value)} 
               className="input-field compact-select"
             >
-              <option value="">Todas</option>
+              <option value="">Marca: Todas</option>
               {brands.map(b => (
                 <option key={b} value={b}>{b}</option>
               ))}
@@ -263,33 +261,31 @@ export default function InventarioPage() {
           </div>
 
           <div className="filter-group">
-            <label className="label-field compact-label">Stock</label>
             <select 
               value={selectedStock} 
               onChange={(e) => setSelectedStock(e.target.value)} 
               className="input-field compact-select"
             >
-              <option value="">Todos</option>
+              <option value="">Stock: Todos</option>
               <option value="bajo">Stock Bajo</option>
               <option value="normal">Stock Normal</option>
             </select>
           </div>
 
           <div className="filter-group">
-            <label className="label-field compact-label">Estado</label>
             <select 
               value={selectedEstado} 
               onChange={(e) => setSelectedEstado(e.target.value)} 
               className="input-field compact-select"
             >
-              <option value="">Todos</option>
+              <option value="">Estado: Todos</option>
               <option value="activo">Activos</option>
-              <option value="inactivo">Inactivos</option>
+              <option value="inactivos">Inactivos</option>
             </select>
           </div>
         </div>
 
-        <button onClick={openNewModal} className="btn btn-primary">
+        <button onClick={openNewModal} className="btn btn-primary btn-add-product">
           <Plus size={18} />
           <span>Nuevo Producto</span>
         </button>
@@ -566,8 +562,14 @@ export default function InventarioPage() {
           justify-content: space-between;
           align-items: center;
           padding: 16px;
-          flex-wrap: wrap;
           gap: 16px;
+        }
+
+        @media (max-width: 992px) {
+          .table-actions {
+            flex-direction: column;
+            align-items: stretch;
+          }
         }
 
         .filters-container {
@@ -579,6 +581,12 @@ export default function InventarioPage() {
           padding: 2px 8px;
           gap: 4px;
           box-shadow: var(--shadow-sm);
+          flex: 1;
+          min-width: 0;
+        }
+
+        .btn-add-product {
+          flex-shrink: 0;
         }
 
         .filter-group {
@@ -599,14 +607,14 @@ export default function InventarioPage() {
         }
 
         .compact-select {
-          padding: 6px 24px 6px 8px;
+          padding: 6px 20px 6px 6px;
           border: none !important;
           background: transparent !important;
           color: var(--text-primary);
-          font-size: 13px;
+          font-size: 12.5px;
           cursor: pointer;
           width: auto;
-          min-width: 90px;
+          min-width: 75px;
           box-shadow: none !important;
         }
 
@@ -614,7 +622,7 @@ export default function InventarioPage() {
           position: relative;
           display: flex;
           align-items: center;
-          width: 200px;
+          width: 140px;
         }
 
         .search-icon-inline {

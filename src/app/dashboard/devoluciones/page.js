@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import Table from '@/components/Table';
 import Modal from '@/components/Modal';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Plus, Eye, Trash2 } from 'lucide-react';
+import { Plus, Eye, Trash2, Search } from 'lucide-react';
 
 export default function DevolucionesPage() {
   const [devoluciones, setDevoluciones] = useState([]);
@@ -165,8 +165,17 @@ export default function DevolucionesPage() {
   return (
     <div>
       <Header title="Gestión de Devoluciones y Notas de Crédito" />
-
       <div className="table-actions glass-panel">
+        <div className="table-search-bar">
+          <Search size={18} className="search-icon" />
+          <input 
+            type="text" 
+            placeholder="Buscar por factura, motivo..." 
+            value={searchVal} 
+            onChange={(e) => setSearchVal(e.target.value)}
+            className="input-field search-input"
+          />
+        </div>
         <button onClick={openNewModal} className="btn btn-primary" disabled={ventas.length === 0}>
           <Plus size={18} />
           <span>Nueva Devolución</span>
@@ -180,9 +189,6 @@ export default function DevolucionesPage() {
           <Table
             headers={headers}
             data={filteredDevoluciones}
-            searchVal={searchVal}
-            onSearchChange={setSearchVal}
-            searchPlaceholder="Buscar por factura, motivo..."
             renderRow={(dev) => (
               <tr key={dev.id}>
                 <td>{dev.id}</td>
@@ -337,8 +343,29 @@ export default function DevolucionesPage() {
       <style jsx>{`
         .table-actions {
           display: flex;
-          justify-content: flex-end;
+          justify-content: space-between;
+          align-items: center;
           padding: 16px;
+          gap: 16px;
+        }
+
+        .table-search-bar {
+          position: relative;
+          display: flex;
+          align-items: center;
+          max-width: 400px;
+          width: 100%;
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 14px;
+          color: var(--text-secondary);
+        }
+
+        .search-input {
+          padding-left: 44px;
+          width: 100%;
         }
 
         .table-row-actions {

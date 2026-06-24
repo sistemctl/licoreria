@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import useBarcodeScanner from '@/components/BarcodeScanner';
 import { formatCurrency } from '@/lib/utils';
+import Modal from '@/components/Modal';
+import { useConfig } from '@/components/ConfigProvider';
 import { 
   Search, 
   ShoppingCart, 
@@ -14,12 +16,14 @@ import {
   CreditCard, 
   DollarSign, 
   PlusCircle, 
-  Ticket 
+  Ticket,
+  AlertTriangle
 } from 'lucide-react';
 
 
 export default function POSPage() {
   const { data: session } = useSession();
+  const { configs } = useConfig();
   const [cajaAbierta, setCajaAbierta] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +41,10 @@ export default function POSPage() {
   const [cart, setCart] = useState([]);
   const [descuentoGlobal, setDescuentoGlobal] = useState(0);
   const [metodoPago, setMetodoPago] = useState('efectivo');
+
+  // Modal de Confirmación de Cobro
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [montoRecibido, setMontoRecibido] = useState('');
 
   // Pago Mixto
   const [montoEfectivo, setMontoEfectivo] = useState(0);
@@ -203,6 +211,36 @@ export default function POSPage() {
     return matchesSearch && matchesCategory;
   });
 
+  // Abrir modal de confirmación
+  const openConfirmation = () => {
+    if (cart.length === 0) {
+      setMensajeError('El carrito está vacío.');
+      return;
+    }
+
+    if (!cajaAbierta) {
+      setMensajeError('El turno de caja está cerrado. Abre caja antes de vender.');
+      return;
+    }
+
+    if (metodoPago === 'credito' && !selectedClienteId) {
+      setMensajeError('Debe seleccionar un cliente para compras a crédito.');
+      return;
+    }
+
+    if (metodoPago === 'mixto') {
+      const sumaMixta = parseFloat(montoEfectivo || 0) + parseFloat(montoTarjeta || 0) + parseFloat(montoTransferencia || 0);
+      if (Math.abs(sumaMixta - total) > 0.01) {
+        setMensajeError(`Los montos especificados ($${sumaMixta.toFixed(2)}) no coinciden con el total ($${total.toFixed(2)})`);
+        return;
+      }
+    }
+
+    setMontoRecibido('');
+    setMensajeError('');
+    setIsConfirmModalOpen(true);
+  };
+
   // Procesar venta
   const handleCobrar = async () => {
     if (cart.length === 0) {
@@ -297,7 +335,8 @@ export default function POSPage() {
 
       doc.setFont('Helvetica', 'bold');
       doc.setFontSize(14);
-      doc.text('MI LICORERÍA', 40, 10, { align: 'center' });
+      const nombreEmpresa = (configs?.nombre_negocio || 'MI LICORERÍA').toUpperCase();
+      doc.text(nombreEmpresa, 40, 10, { align: 'center' });
       
       doc.setFont('Helvetica', 'normal');
       doc.setFontSize(8);
@@ -530,60 +569,6 @@ export default function POSPage() {
             </div>
           </div>
 
-          <div className="checkout-field">
-            <label className="label-field">Método de Pago</label>
-            <div className="select-with-icon">
-              <CreditCard size={16} className="field-icon" />
-              <select 
-                value={metodoPago} 
-                onChange={(e) => setMetodoPago(e.target.value)}
-                className="input-field select-field"
-              >
-                <option value="efectivo">Efectivo</option>
-                <option value="tarjeta">Tarjeta (Débito/Crédito)</option>
-                <option value="transferencia">Transferencia Bancaria</option>
-                <option value="credito">Crédito (A Cuenta de Cliente)</option>
-                <option value="mixto">Pago Mixto</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Configuración Pago Mixto */}
-          {metodoPago === 'mixto' && (
-            <div className="mixto-inputs glass-panel">
-              <h5>Montos de Pago Mixto</h5>
-              <div className="mixto-field">
-                <span>Efectivo ($)</span>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  value={montoEfectivo} 
-                  onChange={(e) => setMontoEfectivo(e.target.value)}
-                  className="input-field compacto"
-                />
-              </div>
-              <div className="mixto-field">
-                <span>Tarjeta ($)</span>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  value={montoTarjeta} 
-                  onChange={(e) => setMontoTarjeta(e.target.value)}
-                  className="input-field compacto"
-                />
-              </div>
-              <div className="mixto-field">
-                <span>Transferencia ($)</span>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  value={montoTransferencia} 
-                  onChange={(e) => setMontoTransferencia(e.target.value)}
-                  className="input-field compacto"
-                />
-              </div>
-            </div>
-          )}
 
           <div className="checkout-field">
             <label className="label-field">Descuento Adicional ($)</label>
@@ -614,14 +599,198 @@ export default function POSPage() {
         </div>
 
         <button 
-          onClick={handleCobrar}
+          onClick={openConfirmation}
           disabled={cart.length === 0 || cargandoCobro}
           className="btn btn-primary w-full cobro-btn"
         >
           <DollarSign size={20} />
-          <span>{cargandoCobro ? 'Procesando Cobro...' : 'REGISTRAR Y COBRAR'}</span>
+          <span>REGISTRAR Y COBRAR</span>
         </button>
       </div>
+
+      {/* Modal Confirmación de Venta */}
+      <Modal isOpen={isConfirmModalOpen} onClose={() => setIsConfirmModalOpen(false)} title="Confirmar Registro de Venta">
+        <div className="confirm-modal-content">
+          <div className="summary-section">
+            <h4 style={{ fontWeight: '600', marginBottom: '8px' }}>Resumen de Productos ({cart.length})</h4>
+            <div className="confirm-items-list">
+              {cart.map((item) => (
+                <div key={item.productoId} className={`confirm-item-row ${item.precioUnitario <= 0 ? 'zero-price-item' : ''}`}>
+                  <div className="item-name-qty">
+                    <span className="qty">{item.cantidad}x</span>
+                    <span className="name">{item.nombre}</span>
+                  </div>
+                  <div className="item-price-subtotal">
+                    <span className="unit">{formatCurrency(item.precioUnitario)}</span>
+                    <span className="subt"><strong>{formatCurrency(item.precioUnitario * item.cantidad)}</strong></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Advertencias */}
+          {cart.some(item => item.precioUnitario <= 0) && (
+            <div className="warning-box">
+              <AlertTriangle size={20} className="text-warning" />
+              <div>
+                <h5 style={{ fontWeight: 'bold' }}>¡Atención! Productos con precio $0.00</h5>
+                <p>Estás registrando productos sin valor comercial. Confirma que esto es correcto.</p>
+              </div>
+            </div>
+          )}
+
+          {total === 0 && (
+            <div className="warning-box total-zero-box">
+              <AlertTriangle size={20} className="text-danger" />
+              <div>
+                <h5 style={{ fontWeight: 'bold' }}>¡Alerta! Total a cobrar es $0.00</h5>
+                <p>El valor total de la venta es cero. ¿Estás seguro de registrar esta venta?</p>
+              </div>
+            </div>
+          )}
+
+          {/* Detalles de Pago */}
+          <div className="payment-summary-box">
+            <div className="pay-row" style={{ alignItems: 'center', marginBottom: '8px' }}>
+              <span>Cliente:</span>
+              <strong>{clientes.find(c => c.id === parseInt(selectedClienteId))?.nombre || 'Particular (Sin factura)'}</strong>
+            </div>
+
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
+              <label className="label-field" style={{ fontSize: '11px', textTransform: 'uppercase' }}>Método de Pago</label>
+              <select 
+                value={metodoPago} 
+                onChange={(e) => {
+                  setMetodoPago(e.target.value);
+                  setMontoRecibido('');
+                }}
+                className="input-field select-field"
+                style={{ padding: '8px 12px', fontSize: '13px' }}
+              >
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta (Débito/Crédito)</option>
+                <option value="transferencia">Transferencia Bancaria</option>
+                <option value="credito">Crédito (A Cuenta de Cliente)</option>
+                <option value="mixto">Pago Mixto</option>
+              </select>
+            </div>
+
+            {/* Configuración Pago Mixto inside Modal */}
+            {metodoPago === 'mixto' && (
+              <div className="mixto-inputs glass-panel" style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid var(--warning-orange)', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.03)', margin: '8px 0' }}>
+                <h5 style={{ fontSize: '11px', color: 'var(--warning-orange)', margin: '0 0 4px 0', fontWeight: 'bold' }}>Montos de Pago Mixto</h5>
+                <div className="mixto-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                  <span>Efectivo ($)</span>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={montoEfectivo} 
+                    onChange={(e) => setMontoEfectivo(e.target.value)}
+                    className="input-field compacto"
+                    style={{ width: '100px', padding: '4px 8px', textAlign: 'right' }}
+                  />
+                </div>
+                <div className="mixto-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                  <span>Tarjeta ($)</span>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={montoTarjeta} 
+                    onChange={(e) => setMontoTarjeta(e.target.value)}
+                    className="input-field compacto"
+                    style={{ width: '100px', padding: '4px 8px', textAlign: 'right' }}
+                  />
+                </div>
+                <div className="mixto-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                  <span>Transferencia ($)</span>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={montoTransferencia} 
+                    onChange={(e) => setMontoTransferencia(e.target.value)}
+                    className="input-field compacto"
+                    style={{ width: '100px', padding: '4px 8px', textAlign: 'right' }}
+                  />
+                </div>
+                {/* Validación Suma Mixta */}
+                {Math.abs((parseFloat(montoEfectivo || 0) + parseFloat(montoTarjeta || 0) + parseFloat(montoTransferencia || 0)) - total) > 0.01 && (
+                  <div style={{ color: 'var(--error-red)', fontSize: '11px', marginTop: '4px' }}>
+                    La suma de montos (${(parseFloat(montoEfectivo || 0) + parseFloat(montoTarjeta || 0) + parseFloat(montoTransferencia || 0)).toFixed(2)}) no coincide con el total (${total.toFixed(2)}).
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Validación Crédito sin Cliente */}
+            {metodoPago === 'credito' && !selectedClienteId && (
+              <div className="warning-box total-zero-box" style={{ margin: '8px 0', padding: '8px' }}>
+                <AlertTriangle size={16} className="text-danger" />
+                <span style={{ color: 'var(--error-red)', fontSize: '12px' }}>Debe seleccionar un cliente para compras a crédito.</span>
+              </div>
+            )}
+
+            <div className="pay-row total-pay-row" style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed var(--panel-border)' }}>
+              <span>Total a Cobrar:</span>
+              <span className="text-gold-large">{formatCurrency(total)}</span>
+            </div>
+          </div>
+
+          {/* Efectivo Recibido y Cambio */}
+          {metodoPago === 'efectivo' && (
+            <div className="cash-calculation">
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label className="label-field" style={{ fontSize: '11px', textTransform: 'uppercase' }}>Monto Entregado por Cliente ($)</label>
+                <input 
+                  type="number"
+                  step="0.01"
+                  value={montoRecibido}
+                  onChange={(e) => setMontoRecibido(e.target.value)}
+                  className="input-field"
+                  placeholder="Ej. 50000"
+                  autoFocus
+                />
+              </div>
+              {montoRecibido && (
+                <div className={`change-indicator ${parseFloat(montoRecibido) < total ? 'insufficient-funds' : ''}`} style={{ marginTop: '8px', fontSize: '13px', textAlign: parseFloat(montoRecibido) < total ? 'left' : 'right' }}>
+                  {parseFloat(montoRecibido) < total ? (
+                    <span className="text-danger" style={{ fontWeight: '600' }}>Monto insuficiente para cubrir el total.</span>
+                  ) : (
+                    <span>Cambio a devolver: <strong style={{ color: 'var(--success-green)', fontSize: '15px' }}>{formatCurrency(Math.max(0, parseFloat(montoRecibido) - total))}</strong></span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="form-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
+            <button 
+              type="button" 
+              onClick={() => setIsConfirmModalOpen(false)} 
+              className="btn btn-secondary"
+              disabled={cargandoCobro}
+            >
+              Cancelar
+            </button>
+            <button 
+              type="button" 
+              onClick={async () => {
+                await handleCobrar();
+                setIsConfirmModalOpen(false);
+              }} 
+              className="btn btn-primary"
+              disabled={
+                cargandoCobro || 
+                (metodoPago === 'credito' && !selectedClienteId) || 
+                (metodoPago === 'efectivo' && montoRecibido && parseFloat(montoRecibido) < total) ||
+                (metodoPago === 'mixto' && Math.abs((parseFloat(montoEfectivo || 0) + parseFloat(montoTarjeta || 0) + parseFloat(montoTransferencia || 0)) - total) > 0.01)
+              }
+            >
+              {cargandoCobro ? 'Procesando Venta...' : 'Confirmar y Registrar Venta'}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <style jsx>{`
         .pos-container {
@@ -835,8 +1004,8 @@ export default function POSPage() {
           height: 100%;
           display: flex;
           flex-direction: column;
-          gap: 20px;
-          padding: 20px;
+          gap: 12px;
+          padding: 16px;
         }
 
         .cart-header {
@@ -844,7 +1013,7 @@ export default function POSPage() {
           align-items: center;
           gap: 12px;
           border-bottom: 1px solid rgba(212, 168, 83, 0.1);
-          padding-bottom: 12px;
+          padding-bottom: 8px;
         }
 
         .cart-header h3 {
@@ -859,15 +1028,16 @@ export default function POSPage() {
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 8px;
           padding-right: 4px;
+          min-height: 160px;
         }
 
         .cart-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 10px;
+          padding: 8px;
           background: #ffffff;
           border: 1px solid rgba(212, 168, 83, 0.15);
           border-radius: 8px;
@@ -978,9 +1148,9 @@ export default function POSPage() {
         .cart-checkout-details {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 8px;
           border-top: 1px solid rgba(212, 168, 83, 0.1);
-          padding-top: 12px;
+          padding-top: 8px;
         }
 
         .checkout-field {
@@ -996,25 +1166,36 @@ export default function POSPage() {
 
         .field-icon {
           position: absolute;
-          left: 14px;
+          left: 10px;
           color: var(--text-secondary);
           pointer-events: none;
         }
 
         .select-field {
-          padding-left: 44px;
+          padding-left: 36px;
+        }
+
+        .pos-right-panel .input-field {
+          padding: 8px 12px;
+          font-size: 13px;
+          border-radius: 6px;
+        }
+
+        .pos-right-panel .label-field {
+          margin-bottom: 4px;
+          font-size: 11px;
         }
 
         .mixto-inputs {
-          padding: 12px;
+          padding: 8px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
           border-color: var(--warning-orange);
         }
 
         .mixto-inputs h5 {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--warning-orange);
         }
 
@@ -1022,21 +1203,21 @@ export default function POSPage() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 12px;
+          font-size: 11px;
         }
 
         .compacto {
-          width: 100px;
-          padding: 6px 10px;
+          width: 90px;
+          padding: 4px 8px !important;
           text-align: right;
         }
 
         .cart-summary {
           border-top: 1px solid rgba(212, 168, 83, 0.1);
-          padding-top: 12px;
+          padding-top: 8px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 4px;
         }
 
         .summary-row {
@@ -1051,7 +1232,7 @@ export default function POSPage() {
           font-weight: 700;
           color: var(--text-primary);
           border-top: 1px dashed rgba(212, 168, 83, 0.2);
-          padding-top: 8px;
+          padding-top: 6px;
           margin-top: 4px;
         }
 
@@ -1076,6 +1257,142 @@ export default function POSPage() {
           background: rgba(34, 197, 94, 0.1);
           border: 1px solid rgba(34, 197, 94, 0.3);
           color: var(--success-green);
+        }
+
+        /* Confirm Modal Styles */
+        .confirm-modal-content {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .summary-section {
+          background: rgba(0, 0, 0, 0.02);
+          border: 1px solid var(--panel-border);
+          border-radius: 8px;
+          padding: 12px;
+        }
+
+        .confirm-items-list {
+          max-height: 150px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .confirm-item-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 13px;
+          padding: 4px 0;
+          border-bottom: 1px dashed rgba(0, 0, 0, 0.05);
+        }
+
+        .zero-price-item {
+          background: rgba(239, 68, 68, 0.05);
+          color: var(--error-red);
+          padding-left: 4px;
+          padding-right: 4px;
+          border-radius: 4px;
+        }
+
+        .item-name-qty {
+          display: flex;
+          gap: 8px;
+        }
+
+        .qty {
+          color: var(--accent-gold);
+          font-weight: 600;
+        }
+
+        .item-price-subtotal {
+          display: flex;
+          gap: 12px;
+        }
+
+        .unit {
+          color: var(--text-secondary);
+        }
+
+        .warning-box {
+          display: flex;
+          gap: 12px;
+          padding: 10px;
+          background: rgba(245, 158, 11, 0.08);
+          border: 1px solid rgba(245, 158, 11, 0.25);
+          border-radius: 8px;
+          align-items: center;
+        }
+
+        .warning-box h5 {
+          font-size: 13px;
+          color: var(--warning-orange);
+          margin-bottom: 2px;
+        }
+
+        .warning-box p {
+          font-size: 11px;
+          color: var(--text-secondary);
+          margin: 0;
+        }
+
+        .total-zero-box {
+          background: rgba(239, 68, 68, 0.05);
+          border-color: rgba(239, 68, 68, 0.25);
+        }
+
+        .total-zero-box h5 {
+          color: var(--error-red);
+        }
+
+        .payment-summary-box {
+          border-top: 1px solid var(--panel-border);
+          border-bottom: 1px solid var(--panel-border);
+          padding: 12px 0;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .pay-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+
+        .total-pay-row {
+          margin-top: 6px;
+          padding-top: 6px;
+          border-top: 1px dashed var(--panel-border);
+          font-size: 15px;
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        .text-gold-large {
+          color: var(--accent-gold);
+          font-size: 18px;
+          font-weight: bold;
+        }
+
+        .cash-calculation {
+          background: rgba(212, 168, 83, 0.05);
+          border: 1px solid rgba(212, 168, 83, 0.15);
+          border-radius: 8px;
+          padding: 12px;
+        }
+
+        .change-indicator {
+          margin-top: 8px;
+          font-size: 13px;
+          text-align: right;
+        }
+
+        .insufficient-funds {
+          text-align: left;
         }
       `}</style>
     </div>

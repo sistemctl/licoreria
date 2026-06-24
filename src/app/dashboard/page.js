@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { useConfig } from '@/components/ConfigProvider';
 import Header from '@/components/Header';
 import Modal from '@/components/Modal';
+
 import { 
   SalesLineChart, 
   TopProductsBarChart, 
@@ -20,69 +23,234 @@ import {
   Clock
 } from 'lucide-react';
 
-export default function DashboardHome() {
-  const [reportData, setReportData] = useState(null);
-  const [cajaAbierta, setCajaAbierta] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [activeModal, setActiveModal] = useState(null);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Fetch reportes
-        const repRes = await fetch('/api/reportes');
-        const repJson = await repRes.json();
-        setReportData(repJson);
-
-        // Fetch caja
-        const cajaRes = await fetch('/api/caja?checkOpen=true');
-        const cajaJson = await cajaRes.json();
-        if (cajaJson && !cajaJson.error) {
-          setCajaAbierta(cajaJson);
-        } else {
-          setCajaAbierta(null);
+function LoadingState() {
+  return (
+    <div className="loading-container">
+      <div className="spinner"></div>
+      <p>Cargando información del dashboard...</p>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .loading-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 70vh;
+          gap: 16px;
         }
-      } catch (err) {
-        console.error('Error al cargar datos del dashboard:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
+        .spinner {
+          border: 4px solid rgba(212, 168, 83, 0.1);
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          border-left-color: var(--accent-gold);
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}} />
+    </div>
+  );
+}
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Cargando información del dashboard...</p>
-        <style jsx>{`
-          .loading-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 70vh;
-            gap: 16px;
-          }
-          .spinner {
-            border: 4px solid rgba(212, 168, 83, 0.1);
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            border-left-color: var(--accent-gold);
-            animation: spin 1s linear infinite;
-          }
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+function CashierDashboard({ session, configs, cajaAbierta }) {
+  return (
+    <div className="dashboard-home">
+      <Header title="Inicio" />
+      
+      {/* Alerta de Caja Cerrada */}
+      {!cajaAbierta && session?.user?.rol?.permisos?.pos && (
+        <div className="alert-banner warning-banner animate-fade-in" style={{ marginBottom: '24px' }}>
+          <div className="alert-content">
+            <AlertTriangle size={20} />
+            <div>
+              <h4>¡Atención! Turno de caja cerrado</h4>
+              <p>Debes abrir un turno de caja antes de poder registrar ventas en el POS.</p>
+            </div>
+          </div>
+          <Link href="/dashboard/caja" className="btn btn-primary alert-btn">
+            <span>Ir a Caja</span>
+            <ArrowRight size={16} />
+          </Link>
+        </div>
+      )}
+
+      <div className="glass-panel welcome-card text-center" style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+        <div className="welcome-avatar" style={{
+          width: '80px',
+          height: '80px',
+          borderRadius: '50%',
+          background: 'var(--accent-gold-hover)',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '32px',
+          fontWeight: 'bold',
+          boxShadow: '0 4px 12px rgba(166, 124, 38, 0.2)'
+        }}>
+          {session?.user?.name ? session.user.name[0].toUpperCase() : 'U'}
+        </div>
+        <div>
+          <h2 style={{ color: 'var(--accent-gold)', marginBottom: '8px', fontSize: '24px' }}>
+            ¡Hola, {session?.user?.name || 'Usuario'}!
+          </h2>
+          <p style={{ maxWidth: '600px', margin: '0 auto', color: 'var(--text-color)', opacity: 0.8, fontSize: '15px', lineHeight: '1.6' }}>
+            Has ingresado al sistema de gestión de **{configs.nombre_negocio || 'Mi Licorería'}**. Tu perfil asignado es de **{session?.user?.rol?.nombre || 'Personal'}**.
+            Usa el menú de navegación lateral para registrar operaciones cotidianas o realizar ventas en el punto de venta.
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+          {session?.user?.rol?.permisos?.pos && (
+            <Link href="/dashboard/pos" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>Ir al Punto de Venta (POS)</span>
+              <ArrowRight size={16} />
+            </Link>
+          )}
+          {session?.user?.rol?.permisos?.caja && (
+            <Link href="/dashboard/caja" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '14px' }}>
+              Gestionar Caja y Turno
+            </Link>
+          )}
+        </div>
       </div>
-    );
-  }
 
+      <style dangerouslySetInnerHTML={{ __html: `
+        .dashboard-home {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+        .alert-banner {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px 24px;
+          border-radius: 12px;
+          border: 1px dashed;
+        }
+        .warning-banner {
+          background: rgba(245, 158, 11, 0.08);
+          border-color: var(--warning-orange);
+          color: var(--text-primary);
+        }
+        .alert-content {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .alert-content h4 {
+          color: var(--warning-orange);
+          margin-bottom: 2px;
+          font-size: 15px;
+        }
+        .alert-content p {
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+        .alert-btn {
+          padding: 8px 16px;
+          font-size: 13px;
+        }
+      `}} />
+    </div>
+  );
+}
+
+function AdminDashboard({ reportData, cajaAbierta, session, configs, activeModal, setActiveModal }) {
   const { metrics = {}, charts = {}, tables = {}, details = {} } = reportData || {};
+
+  // Drilldown states for charts
+  const [clickedChartData, setClickedChartData] = useState(null);
+  const [chartModalType, setChartModalType] = useState(null); // 'category' | 'payment' | 'line' | 'bar'
+  const [chartDetailLoading, setChartDetailLoading] = useState(false);
+  const [chartDetailItems, setChartDetailItems] = useState([]);
+
+  // Daily Sales Line Chart click
+  const handleLineClick = async (data) => {
+    setClickedChartData(data);
+    setChartModalType('line');
+    setChartDetailLoading(true);
+    try {
+      const res = await fetch('/api/ventas');
+      const ventas = await res.json();
+      const targetDate = data.label; // "YYYY-MM-DD"
+      const filtered = (Array.isArray(ventas) ? ventas : []).filter(v => {
+        const vDate = new Date(v.fecha).toISOString().split('T')[0];
+        return vDate === targetDate;
+      });
+      setChartDetailItems(filtered);
+    } catch (e) {
+      console.error(e);
+      setChartDetailItems([]);
+    } finally {
+      setChartDetailLoading(false);
+    }
+  };
+
+  // Top Products Bar Chart click
+  const handleBarClick = async (data) => {
+    setClickedChartData(data);
+    setChartModalType('bar');
+    setChartDetailLoading(true);
+    try {
+      const res = await fetch(`/api/productos?q=${encodeURIComponent(data.label)}`);
+      const json = await res.json();
+      const matched = json.find(p => p.nombre.toLowerCase() === data.label.toLowerCase()) || json[0];
+      setChartDetailItems(matched ? [matched] : []);
+    } catch (e) {
+      console.error(e);
+      setChartDetailItems([]);
+    } finally {
+      setChartDetailLoading(false);
+    }
+  };
+
+  // Category Pie Chart click
+  const handleCategoryClick = async (data) => {
+    setClickedChartData(data);
+    setChartModalType('category');
+    setChartDetailLoading(true);
+    try {
+      const catRes = await fetch('/api/categorias');
+      const cats = await catRes.json();
+      const matchedCat = cats.find(c => c.nombre.toLowerCase() === data.label.toLowerCase());
+      if (matchedCat) {
+        const prodRes = await fetch(`/api/productos?categoriaId=${matchedCat.id}`);
+        const prods = await prodRes.json();
+        setChartDetailItems(prods);
+      } else {
+        setChartDetailItems([]);
+      }
+    } catch (e) {
+      console.error(e);
+      setChartDetailItems([]);
+    } finally {
+      setChartDetailLoading(false);
+    }
+  };
+
+  // Payment Method Pie Chart click
+  const handlePaymentClick = async (data) => {
+    setClickedChartData(data);
+    setChartModalType('payment');
+    setChartDetailLoading(true);
+    try {
+      const res = await fetch('/api/ventas');
+      const ventas = await res.json();
+      const filtered = (Array.isArray(ventas) ? ventas : []).filter(
+        v => v.metodoPago.toLowerCase() === data.label.toLowerCase()
+      );
+      setChartDetailItems(filtered);
+    } catch (e) {
+      console.error(e);
+      setChartDetailItems([]);
+    } finally {
+      setChartDetailLoading(false);
+    }
+  };
 
   return (
     <div className="dashboard-home">
@@ -169,14 +337,14 @@ export default function DashboardHome() {
         <div className="glass-panel chart-container">
           <h4>Ventas Diarias (Últimos 30 Días)</h4>
           <div className="chart-wrapper">
-            <SalesLineChart labels={charts.lineLabels} data={charts.lineData} />
+            <SalesLineChart labels={charts.lineLabels} data={charts.lineData} onChartClick={handleLineClick} />
           </div>
         </div>
 
         <div className="glass-panel chart-container">
           <h4>Top 10 Productos Más Vendidos</h4>
           <div className="chart-wrapper">
-            <TopProductsBarChart labels={charts.barLabels} data={charts.barData} />
+            <TopProductsBarChart labels={charts.barLabels} data={charts.barData} onChartClick={handleBarClick} />
           </div>
         </div>
       </div>
@@ -185,14 +353,14 @@ export default function DashboardHome() {
         <div className="glass-panel chart-container">
           <h4>Ventas por Categoría</h4>
           <div className="chart-wrapper">
-            <SalesByCategoryPieChart labels={charts.pieCategoryLabels} data={charts.pieCategoryData} />
+            <SalesByCategoryPieChart labels={charts.pieCategoryLabels} data={charts.pieCategoryData} onChartClick={handleCategoryClick} />
           </div>
         </div>
 
         <div className="glass-panel chart-container">
           <h4>Ventas por Método de Pago</h4>
           <div className="chart-wrapper">
-            <PaymentMethodsPieChart labels={charts.piePayLabels} data={charts.piePayData} />
+            <PaymentMethodsPieChart labels={charts.piePayLabels} data={charts.piePayData} onChartClick={handlePaymentClick} />
           </div>
         </div>
       </div>
@@ -425,64 +593,223 @@ export default function DashboardHome() {
         </div>
       </Modal>
 
-      {/* Modal de Créditos */}
+      {/* Modal Detalle de Categoría */}
       <Modal 
-        isOpen={activeModal === 'creditos'} 
-        onClose={() => setActiveModal(null)} 
-        title="Detalle de Cuentas por Cobrar"
+        isOpen={chartModalType === 'category'} 
+        onClose={() => { setChartModalType(null); setClickedChartData(null); }} 
+        title={`Productos en Categoría: ${clickedChartData?.label || ''}`}
       >
         <div className="modal-drilldown-content">
           <div className="drilldown-summary">
             <div className="summary-item">
-              <span className="summary-lbl">Saldo Total Pendiente:</span>
-              <span className="summary-val text-warning font-bold">{formatCurrency(metrics.totalPendienteCobro)}</span>
+              <span className="summary-lbl">Ventas Totales Categoría:</span>
+              <span className="summary-val text-success font-bold">{formatCurrency(clickedChartData?.value)}</span>
             </div>
           </div>
           
           <h4 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '14px', color: 'var(--accent-gold)' }}>
-            Líneas de Crédito Activas (Clientes)
+            Inventario en esta Categoría
           </h4>
-          <div className="table-container">
-            <table className="custom-table" style={{ fontSize: '13px' }}>
-              <thead>
-                <tr>
-                  <th style={{ padding: '8px 12px' }}>Cliente</th>
-                  <th style={{ padding: '8px 12px' }}>Vence</th>
-                  <th style={{ padding: '8px 12px' }} className="text-right">Saldo Pendiente</th>
-                </tr>
-              </thead>
-              <tbody>
-                {details.latestCuentasCobrar && details.latestCuentasCobrar.length > 0 ? (
-                  details.latestCuentasCobrar.map(cc => (
-                    <tr key={cc.id}>
-                      <td style={{ padding: '8px 12px' }}><strong>{cc.cliente?.nombre}</strong></td>
-                      <td style={{ padding: '8px 12px' }}>
-                        {cc.fechaLimite ? new Date(cc.fechaLimite).toLocaleDateString('es-ES') : 'Sin límite'}
-                      </td>
-                      <td style={{ padding: '8px 12px' }} className="text-right font-bold text-warning">
-                        {formatCurrency(cc.saldoPendiente)}
+          
+          {chartDetailLoading ? (
+            <p className="text-center py-4">Cargando productos...</p>
+          ) : (
+            <div className="table-container">
+              <table className="custom-table" style={{ fontSize: '13px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '8px 12px' }}>Producto</th>
+                    <th style={{ padding: '8px 12px' }}>Precio Venta</th>
+                    <th style={{ padding: '8px 12px' }} className="text-right">Stock</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chartDetailItems && chartDetailItems.length > 0 ? (
+                    chartDetailItems.map(p => (
+                      <tr key={p.id}>
+                        <td style={{ padding: '8px 12px' }}><strong>{p.nombre}</strong></td>
+                        <td style={{ padding: '8px 12px' }}>{formatCurrency(p.precioVentaDetal)}</td>
+                        <td style={{ padding: '8px 12px' }} className={`text-right font-bold ${p.stock <= p.stockMinimo ? 'text-danger' : 'text-success'}`}>
+                          {p.stock}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="3" className="text-center italic text-secondary" style={{ padding: '12px' }}>
+                        No hay productos registrados en esta categoría.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="3" className="text-center italic text-secondary" style={{ padding: '12px' }}>
-                      No hay cuentas por cobrar pendientes.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: '20px', textAlign: 'right' }}>
-            <Link href="/dashboard/cuentas-por-cobrar" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>
-              Gestionar Créditos y Abonos
-            </Link>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </Modal>
 
-      <style jsx>{`
+      {/* Modal Detalle de Ventas por Método de Pago */}
+      <Modal 
+        isOpen={chartModalType === 'payment'} 
+        onClose={() => { setChartModalType(null); setClickedChartData(null); }} 
+        title={`Ventas con Método: ${clickedChartData?.label || ''}`}
+      >
+        <div className="modal-drilldown-content">
+          <div className="drilldown-summary">
+            <div className="summary-item">
+              <span className="summary-lbl">Total Recaudado ({clickedChartData?.label}):</span>
+              <span className="summary-val text-success font-bold">{formatCurrency(clickedChartData?.value)}</span>
+            </div>
+          </div>
+          
+          <h4 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '14px', color: 'var(--accent-gold)' }}>
+            Transacciones Recientes
+          </h4>
+          
+          {chartDetailLoading ? (
+            <p className="text-center py-4">Cargando transacciones...</p>
+          ) : (
+            <div className="table-container">
+              <table className="custom-table" style={{ fontSize: '13px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '8px 12px' }}>Factura</th>
+                    <th style={{ padding: '8px 12px' }}>Fecha</th>
+                    <th style={{ padding: '8px 12px' }} className="text-right">Monto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chartDetailItems && chartDetailItems.length > 0 ? (
+                    chartDetailItems.slice(0, 10).map(v => (
+                      <tr key={v.id}>
+                        <td style={{ padding: '8px 12px' }}><strong>{v.numFactura}</strong></td>
+                        <td style={{ padding: '8px 12px' }}>{new Date(v.fecha).toLocaleDateString('es-ES')}</td>
+                        <td style={{ padding: '8px 12px' }} className="text-right font-bold text-success">
+                          {formatCurrency(v.total)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="3" className="text-center italic text-secondary" style={{ padding: '12px' }}>
+                        No hay ventas registradas con este método de pago.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Modal Detalle de Ventas del Día */}
+      <Modal 
+        isOpen={chartModalType === 'line'} 
+        onClose={() => { setChartModalType(null); setClickedChartData(null); }} 
+        title={`Ventas del Día: ${clickedChartData?.label || ''}`}
+      >
+        <div className="modal-drilldown-content">
+          <div className="drilldown-summary">
+            <div className="summary-item">
+              <span className="summary-lbl">Total Facturado este día:</span>
+              <span className="summary-val text-success font-bold">{formatCurrency(clickedChartData?.value)}</span>
+            </div>
+          </div>
+          
+          <h4 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '14px', color: 'var(--accent-gold)' }}>
+            Ventas Registradas
+          </h4>
+          
+          {chartDetailLoading ? (
+            <p className="text-center py-4">Cargando ventas...</p>
+          ) : (
+            <div className="table-container">
+              <table className="custom-table" style={{ fontSize: '13px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '8px 12px' }}>Factura</th>
+                    <th style={{ padding: '8px 12px' }}>Hora</th>
+                    <th style={{ padding: '8px 12px' }} className="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chartDetailItems && chartDetailItems.length > 0 ? (
+                    chartDetailItems.map(v => (
+                      <tr key={v.id}>
+                        <td style={{ padding: '8px 12px' }}><strong>{v.numFactura}</strong></td>
+                        <td style={{ padding: '8px 12px' }}>{new Date(v.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</td>
+                        <td style={{ padding: '8px 12px' }} className="text-right font-bold text-success">
+                          {formatCurrency(v.total)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="3" className="text-center italic text-secondary" style={{ padding: '12px' }}>
+                        No hay ventas registradas en esta fecha.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Modal Detalle de Producto Top */}
+      <Modal 
+        isOpen={chartModalType === 'bar'} 
+        onClose={() => { setChartModalType(null); setClickedChartData(null); }} 
+        title={`Detalle de Producto: ${clickedChartData?.label || ''}`}
+      >
+        <div className="modal-drilldown-content">
+          <div className="drilldown-summary">
+            <div className="summary-item">
+              <span className="summary-lbl">Cantidad Vendida (30d):</span>
+              <span className="summary-val text-success font-bold">{clickedChartData?.value} unidades</span>
+            </div>
+          </div>
+          
+          <h4 style={{ marginTop: '20px', marginBottom: '10px', fontSize: '14px', color: 'var(--accent-gold)' }}>
+            Ficha del Producto
+          </h4>
+          
+          {chartDetailLoading ? (
+            <p className="text-center py-4">Cargando información...</p>
+          ) : (
+            <div className="table-container">
+              <table className="custom-table" style={{ fontSize: '13px' }}>
+                <tbody>
+                  {chartDetailItems && chartDetailItems.length > 0 ? (
+                    chartDetailItems.map(p => (
+                      <tr key={p.id}>
+                        <td style={{ padding: '8px 12px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div><strong>Marca:</strong> {p.marca || 'N/A'}</div>
+                            <div><strong>Precio Venta:</strong> {formatCurrency(p.precioVentaDetal)}</div>
+                            <div><strong>Stock Actual:</strong> <span className={p.stock <= p.stockMinimo ? 'text-danger' : 'text-success'}>{p.stock} unidades</span></div>
+                            <div><strong>Unidad Medida:</strong> {p.unidadMedida}</div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="text-center italic text-secondary" style={{ padding: '12px' }}>
+                        No se encontró información para este producto.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      <style dangerouslySetInnerHTML={{ __html: `
         .dashboard-home {
           display: flex;
           flex-direction: column;
@@ -638,7 +965,68 @@ export default function DashboardHome() {
         .text-right {
           text-align: right;
         }
-      `}</style>
+      `}} />
     </div>
+  );
+}
+
+export default function DashboardHome() {
+  const { data: session } = useSession();
+  const { configs } = useConfig();
+  const [reportData, setReportData] = useState(null);
+  const [cajaAbierta, setCajaAbierta] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeModal, setActiveModal] = useState(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Fetch reportes
+        const repRes = await fetch('/api/reportes');
+        const repJson = await repRes.json();
+        setReportData(repJson);
+
+        // Fetch caja
+        const cajaRes = await fetch('/api/caja?checkOpen=true');
+        const cajaJson = await cajaRes.json();
+        if (cajaJson && !cajaJson.error) {
+          setCajaAbierta(cajaJson);
+        } else {
+          setCajaAbierta(null);
+        }
+      } catch (err) {
+        console.error('Error al cargar datos del dashboard:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return <LoadingState />;
+  }
+
+  const isAdmin = session?.user?.rol?.nombre === 'Administrador' || session?.user?.rol?.nombre === 'Superadministrador';
+
+  if (!isAdmin) {
+    return (
+      <CashierDashboard 
+        session={session} 
+        configs={configs} 
+        cajaAbierta={cajaAbierta} 
+      />
+    );
+  }
+
+  return (
+    <AdminDashboard 
+      reportData={reportData}
+      cajaAbierta={cajaAbierta}
+      session={session}
+      configs={configs}
+      activeModal={activeModal}
+      setActiveModal={setActiveModal}
+    />
   );
 }

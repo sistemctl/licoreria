@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Header from '@/components/Header';
 import Table from '@/components/Table';
 import { formatDate } from '@/lib/utils';
+import { AlertTriangle } from 'lucide-react';
 
 function renderFriendlyJSON(data) {
   if (!data || typeof data !== 'object') return '-';
@@ -78,6 +80,7 @@ function renderFriendlyJSON(data) {
 }
 
 export default function AuditoriaPage() {
+  const { data: session, status } = useSession();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchVal, setSearchVal] = useState('');
@@ -95,8 +98,10 @@ export default function AuditoriaPage() {
   }
 
   useEffect(() => {
-    loadLogs();
-  }, []);
+    if (status === 'authenticated' && session?.user?.rol?.permisos?.auditoria) {
+      loadLogs();
+    }
+  }, [status, session]);
 
   const filteredLogs = logs.filter(l => 
     l.accion.toLowerCase().includes(searchVal.toLowerCase()) ||
@@ -105,6 +110,33 @@ export default function AuditoriaPage() {
   );
 
   const headers = ['ID', 'Fecha/Hora', 'Usuario', 'Acción', 'Tabla Afectada', 'Registro ID', 'Datos Anteriores', 'Datos Nuevos'];
+
+  if (status === 'loading') {
+    return (
+      <div>
+        <Header title="Bitácora de Auditoría del Sistema" />
+        <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
+          <p>Cargando información de sesión...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const permisos = session?.user?.rol?.permisos || {};
+  if (!permisos.auditoria) {
+    return (
+      <div>
+        <Header title="Acceso Denegado" />
+        <div className="glass-panel" style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', textAlign: 'center' }}>
+          <AlertTriangle size={48} className="text-warning" />
+          <h2 style={{ color: 'var(--text-primary)', fontSize: '20px' }}>No tienes permiso para acceder a Auditoría</h2>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', fontSize: '14px', lineHeight: '1.5' }}>
+            Esta sección de bitácora de auditoría del sistema está restringida. Contacta a un superadministrador si necesitas permisos.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

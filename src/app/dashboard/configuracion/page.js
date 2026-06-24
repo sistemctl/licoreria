@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Header from '@/components/Header';
-import { Save, CheckCircle } from 'lucide-react';
+import { Save, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useConfig } from '@/components/ConfigProvider';
 
 export default function ConfiguracionPage() {
+  const { data: session, status } = useSession();
   const [configs, setConfigs] = useState([]);
   const [loading, setLoading] = useState(true);
   const { updateConfigState } = useConfig();
@@ -53,8 +55,10 @@ export default function ConfiguracionPage() {
   }
 
   useEffect(() => {
-    loadConfig();
-  }, []);
+    if (status === 'authenticated' && session?.user?.rol?.permisos?.configuracion) {
+      loadConfig();
+    }
+  }, [status, session]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -94,11 +98,27 @@ export default function ConfiguracionPage() {
     }
   };
 
-  if (loading) {
+  if (status === 'loading' || (loading && session?.user?.rol?.permisos?.configuracion)) {
     return (
       <div className="pos-loading">
         <div className="spinner"></div>
         <p>Cargando configuraciones...</p>
+      </div>
+    );
+  }
+
+  const permisos = session?.user?.rol?.permisos || {};
+  if (!permisos.configuracion) {
+    return (
+      <div>
+        <Header title="Acceso Denegado" />
+        <div className="glass-panel" style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', textAlign: 'center' }}>
+          <AlertTriangle size={48} className="text-warning" />
+          <h2 style={{ color: 'var(--text-primary)', fontSize: '20px' }}>No tienes permiso para acceder a Configuración</h2>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', fontSize: '14px', lineHeight: '1.5' }}>
+            Esta sección de administración y ajustes del sistema está restringida. Contacta a un superadministrador si necesitas permisos.
+          </p>
+        </div>
       </div>
     );
   }

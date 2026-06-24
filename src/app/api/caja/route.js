@@ -10,6 +10,9 @@ export async function GET(request) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+    if (!session?.user?.rol?.permisos?.caja) {
+      return NextResponse.json({ error: 'No autorizado (Falta permiso de caja)' }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const userId = session.user.id;
@@ -45,6 +48,9 @@ export async function POST(request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+    if (!session?.user?.rol?.permisos?.caja) {
+      return NextResponse.json({ error: 'No autorizado (Falta permiso de caja)' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -96,6 +102,9 @@ export async function PUT(request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+    if (!session?.user?.rol?.permisos?.caja) {
+      return NextResponse.json({ error: 'No autorizado (Falta permiso de caja)' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

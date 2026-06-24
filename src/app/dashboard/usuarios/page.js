@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Header from '@/components/Header';
 import Table from '@/components/Table';
 import Modal from '@/components/Modal';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function UsuariosPage() {
+  const { data: session, status } = useSession();
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +21,7 @@ export default function UsuariosPage() {
 
   // Campos
   const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rolId, setRolId] = useState('');
   const [activo, setActivo] = useState(true);
@@ -42,14 +44,16 @@ export default function UsuariosPage() {
   }
 
   useEffect(() => {
-    loadUsuarios();
-  }, []);
+    if (status === 'authenticated' && session?.user?.rol?.permisos?.usuarios) {
+      loadUsuarios();
+    }
+  }, [status, session]);
 
   const openNewModal = () => {
     setModalTitle('Nuevo Usuario');
     setEditingId(null);
     setNombre('');
-    setEmail('');
+    setUsername('');
     setPassword('');
     setRolId(roles[0]?.id || '');
     setActivo(true);
@@ -61,7 +65,7 @@ export default function UsuariosPage() {
     setModalTitle('Editar Usuario');
     setEditingId(user.id);
     setNombre(user.nombre);
-    setEmail(user.email);
+    setUsername(user.username);
     setPassword(''); // Dejar en blanco a menos que se desee cambiar
     setRolId(user.rolId);
     setActivo(user.activo);
@@ -73,14 +77,14 @@ export default function UsuariosPage() {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!nombre || !email || (!editingId && !password) || !rolId) {
-      setErrorMsg('Nombre, correo, rol y contraseña (para nuevos usuarios) son obligatorios.');
+    if (!nombre || !username || (!editingId && !password) || !rolId) {
+      setErrorMsg('Nombre, usuario, rol y contraseña (para nuevos usuarios) son obligatorios.');
       return;
     }
 
     const payload = {
       nombre,
-      email,
+      username,
       rolId,
       activo
     };
@@ -131,11 +135,38 @@ export default function UsuariosPage() {
 
   const filteredUsers = usuarios.filter(u => 
     u.nombre.toLowerCase().includes(searchVal.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchVal.toLowerCase()) ||
+    u.username.toLowerCase().includes(searchVal.toLowerCase()) ||
     u.rol?.nombre.toLowerCase().includes(searchVal.toLowerCase())
   );
 
-  const headers = ['ID', 'Nombre', 'Correo Electrónico', 'Rol', 'Último Login', 'Estado', 'Acciones'];
+  const headers = ['ID', 'Nombre', 'Nombre de Usuario', 'Rol', 'Último Login', 'Estado', 'Acciones'];
+
+  if (status === 'loading') {
+    return (
+      <div>
+        <Header title="Gestión de Usuarios y Accesos" />
+        <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
+          <p>Cargando información de sesión...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const permisos = session?.user?.rol?.permisos || {};
+  if (!permisos.usuarios) {
+    return (
+      <div>
+        <Header title="Acceso Denegado" />
+        <div className="glass-panel" style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', textAlign: 'center' }}>
+          <AlertTriangle size={48} className="text-warning" />
+          <h2 style={{ color: 'var(--text-primary)', fontSize: '20px' }}>No tienes permiso para acceder a Usuarios</h2>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', fontSize: '14px', lineHeight: '1.5' }}>
+            Esta sección de administración de Usuarios y Accesos está restringida. Contacta a un superadministrador si necesitas permisos.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -162,7 +193,7 @@ export default function UsuariosPage() {
               <tr key={user.id}>
                 <td>{user.id}</td>
                 <td><strong>{user.nombre}</strong></td>
-                <td>{user.email}</td>
+                <td>{user.username}</td>
                 <td><span className="badge badge-warning">{user.rol?.nombre}</span></td>
                 <td>{user.ultimoLogin ? new Date(user.ultimoLogin).toLocaleString() : 'Nunca'}</td>
                 <td>
@@ -204,14 +235,14 @@ export default function UsuariosPage() {
           </div>
 
           <div className="form-group">
-            <label className="label-field">Correo Electrónico</label>
+            <label className="label-field">Nombre de Usuario</label>
             <input 
-              type="email" 
+              type="text" 
               required
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
+              value={username} 
+              onChange={(e) => setUsername(e.target.value)} 
               className="input-field" 
-              placeholder="pedro@licoreria.com"
+              placeholder="Ej. pperez"
             />
           </div>
 

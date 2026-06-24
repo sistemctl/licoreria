@@ -12,7 +12,7 @@ async function main() {
   console.log('Iniciando seed de base de datos...');
 
   // 1. Crear Roles
-  const adminPermissions = {
+  const superAdminPermissions = {
     inicio: true,
     pos: true,
     inventario: true,
@@ -30,6 +30,26 @@ async function main() {
     auditoria: true,
     usuarios: true,
     configuracion: true,
+  };
+
+  const adminPermissions = {
+    inicio: true,
+    pos: true,
+    inventario: true,
+    categorias: true,
+    combos: true,
+    descuentos: true,
+    ventas: true,
+    compras: true,
+    proveedores: true,
+    clientes: true,
+    creditos: true,
+    devoluciones: true,
+    caja: true,
+    reportes: true,
+    auditoria: false, // NO ACCESO
+    usuarios: false,  // NO ACCESO
+    configuracion: false, // NO ACCESO
   };
 
   const cajeroPermissions = {
@@ -72,9 +92,18 @@ async function main() {
     configuracion: false,
   };
 
+  const rolSuperAdmin = await prisma.rol.upsert({
+    where: { nombre: 'Superadministrador' },
+    update: { permisos: superAdminPermissions },
+    create: {
+      nombre: 'Superadministrador',
+      permisos: superAdminPermissions,
+    },
+  });
+
   const rolAdmin = await prisma.rol.upsert({
     where: { nombre: 'Administrador' },
-    update: {},
+    update: { permisos: adminPermissions },
     create: {
       nombre: 'Administrador',
       permisos: adminPermissions,
@@ -101,21 +130,21 @@ async function main() {
 
   console.log('Roles creados/verificados.');
 
-  // 2. Crear Usuario Administrador
+  // 2. Crear Usuario Administrador (como Superadministrador)
   const passwordHash = await bcrypt.hash('admin123', 12);
   const adminUser = await prisma.usuario.upsert({
-    where: { email: 'admin@licoreria.com' },
+    where: { username: 'admin' },
     update: {},
     create: {
       nombre: 'Administrador',
-      email: 'admin@licoreria.com',
+      username: 'admin',
       passwordHash: passwordHash,
-      rolId: rolAdmin.id,
+      rolId: rolSuperAdmin.id,
       activo: true,
     },
   });
 
-  console.log(`Usuario administrador creado: ${adminUser.email}`);
+  console.log(`Usuario administrador creado: ${adminUser.username}`);
 
   // 3. Crear Categorías
   const categorias = [

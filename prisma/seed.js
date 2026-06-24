@@ -112,7 +112,7 @@ async function main() {
 
   const rolCajero = await prisma.rol.upsert({
     where: { nombre: 'Cajero' },
-    update: {},
+    update: { permisos: cajeroPermissions },
     create: {
       nombre: 'Cajero',
       permisos: cajeroPermissions,
@@ -121,7 +121,7 @@ async function main() {
 
   const rolAlmacenista = await prisma.rol.upsert({
     where: { nombre: 'Almacenista' },
-    update: {},
+    update: { permisos: almacenistaPermissions },
     create: {
       nombre: 'Almacenista',
       permisos: almacenistaPermissions,

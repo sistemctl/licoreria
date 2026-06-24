@@ -5,6 +5,78 @@ import Header from '@/components/Header';
 import Table from '@/components/Table';
 import { formatDate } from '@/lib/utils';
 
+function renderFriendlyJSON(data) {
+  if (!data || typeof data !== 'object') return '-';
+  
+  // Fields to exclude from display for cleaner view
+  const excludedKeys = ['id', 'createdAt', 'updatedAt', 'passwordHash', 'password', 'usuarioId', 'registroId'];
+  
+  const entries = Object.entries(data).filter(([key]) => !excludedKeys.includes(key));
+  if (entries.length === 0) {
+    if (data.id) return <div className="friendly-json-wrapper"><div className="friendly-item"><span className="friendly-key">ID:</span> <span className="friendly-val">{data.id}</span></div></div>;
+    return '-';
+  }
+
+  // Friendly key mapping
+  const keyLabels = {
+    clave: 'Parámetro',
+    valor: 'Valor',
+    descripcion: 'Descripción',
+    nombre: 'Nombre',
+    marca: 'Marca',
+    contenido_ml: 'Contenido (ml)',
+    grado_alcoholico: 'Grado Alcohólico',
+    categoria_id: 'ID Categoría',
+    precio_compra: 'Precio Compra',
+    precio_venta_detal: 'Precio Detal',
+    precio_venta_mayor: 'Precio Mayor',
+    stock: 'Stock',
+    stock_minimo: 'Stock Mínimo',
+    unidad_medida: 'Unidad de Medida',
+    unidades_por_caja: 'Unidades por Caja',
+    es_combo: 'Es Combo',
+    activo: 'Estado Activo',
+    color_tema: 'Color del Tema',
+    nombre_negocio: 'Nombre del Negocio',
+    direccion: 'Dirección',
+    telefono: 'Teléfono',
+    rif_nit: 'RIF / NIT',
+    moneda_simbolo: 'Moneda',
+    impuesto_porcentaje: 'Impuesto (%)',
+    prefijo_factura: 'Prefijo Factura',
+    siguiente_num_factura: 'Siguiente Factura',
+    dias_alerta_vencimiento: 'Alerta Vencimiento (Días)',
+    logo_url: 'URL del Logo'
+  };
+
+  return (
+    <div className="friendly-json-wrapper">
+      {entries.map(([key, val]) => {
+        const label = keyLabels[key] || key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+        let displayVal = String(val);
+        if (typeof val === 'boolean') {
+          displayVal = val ? 'Sí' : 'No';
+        }
+        
+        // Show color preview if it's a hex color
+        const isColor = typeof val === 'string' && val.startsWith('#') && val.length <= 9 && /#[0-9a-fA-F]{3,8}/.test(val);
+        
+        return (
+          <div key={key} className="friendly-item">
+            <span className="friendly-key">{label}</span>
+            <span className="friendly-val-wrapper">
+              {isColor && (
+                <span className="color-preview" style={{ backgroundColor: val }} />
+              )}
+              <span className="friendly-val">{displayVal}</span>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AuditoriaPage() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,14 +137,10 @@ export default function AuditoriaPage() {
                 <td><code>{log.tablaAfectada}</code></td>
                 <td>{log.registroId || '-'}</td>
                 <td>
-                  {log.datosAnteriores ? (
-                    <pre className="json-pre">{JSON.stringify(log.datosAnteriores, null, 2)}</pre>
-                  ) : '-'}
+                  {renderFriendlyJSON(log.datosAnteriores)}
                 </td>
                 <td>
-                  {log.datosNuevos ? (
-                    <pre className="json-pre">{JSON.stringify(log.datosNuevos, null, 2)}</pre>
-                  ) : '-'}
+                  {renderFriendlyJSON(log.datosNuevos)}
                 </td>
               </tr>
             )}
@@ -80,20 +148,51 @@ export default function AuditoriaPage() {
         )}
       </div>
 
-      <style jsx>{`
-        .json-pre {
+      <style jsx global>{`
+        .friendly-json-wrapper {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
           max-width: 250px;
-          max-height: 130px;
-          overflow: auto;
-          font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
           font-size: 11px;
-          background: #0f172a;
-          color: #38bdf8;
-          padding: 8px 12px;
-          border-radius: 6px;
-          border: 1px solid #1e293b;
-          white-space: pre-wrap;
+        }
+        .friendly-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 4px 8px;
+          background: rgba(166, 124, 38, 0.05);
+          border-radius: 4px;
+          border: 1px solid rgba(166, 124, 38, 0.08);
+        }
+        .friendly-key {
+          font-weight: 600;
+          color: var(--accent-gold);
+          font-size: 10px;
+          text-transform: capitalize;
+        }
+        .friendly-val-wrapper {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .friendly-val {
+          color: var(--text-color);
+          font-family: monospace;
+          background: rgba(0, 0, 0, 0.04);
+          padding: 2px 4px;
+          border-radius: 3px;
+          font-size: 10px;
           word-break: break-all;
+          max-width: 140px;
+        }
+        .color-preview {
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          border: 1px solid rgba(0, 0, 0, 0.15);
         }
       `}</style>
     </div>

@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { requireAnyPermission, requirePermission } from '@/lib/permissions';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   try {
     const auth = await requireAnyPermission(['inventario', 'pos', 'compras', 'combos', 'descuentos']);

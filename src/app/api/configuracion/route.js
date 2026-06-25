@@ -41,21 +41,24 @@ export async function PUT(request) {
           where: { clave }
         });
 
-        if (anterior) {
-          const act = await tx.configuracion.update({
-            where: { clave },
-            data: { valor: String(valor) }
-          });
-          actualizadas.push(act);
+        const act = await tx.configuracion.upsert({
+          where: { clave },
+          update: { valor: String(valor) },
+          create: {
+            clave,
+            valor: String(valor),
+            descripcion: `Configuración de ${clave}`
+          }
+        });
+        actualizadas.push(act);
 
-          await logAudit({
-            accion: 'CAMBIO_CONFIGURACION',
-            tablaAfectada: 'configuraciones',
-            registroId: anterior.id,
-            datosAnteriores: anterior,
-            datosNuevos: act
-          });
-        }
+        await logAudit({
+          accion: 'CAMBIO_CONFIGURACION',
+          tablaAfectada: 'configuraciones',
+          registroId: act.id,
+          datosAnteriores: anterior || null,
+          datosNuevos: act
+        });
       }
     });
 

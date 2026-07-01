@@ -1,0 +1,15 @@
+/* Panels */
+.glass-panel,
+.ui-panel {
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  padding: calc(var(--space-4) * var(--space-unit)) calc(var(--space-5) * var(--space-unit));
+}
+
+.ui-panel--interactive:hover,
+.stat-card--clickable:hover {
+  border-color: color-mix(in srgb, var(--color-brand) 30%, transparent);
+  box-shadow: var(--shadow-md);
+}

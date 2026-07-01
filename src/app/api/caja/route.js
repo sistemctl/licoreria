@@ -1,18 +1,14 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getPaymentMethodsFromDb, computeCajaCashFromVenta } from '@/lib/paymentMethods';
+import { requirePermission, canManageCajaTurno } from '@/lib/permissions.server';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-    if (!session?.user?.rol?.permisos?.caja) {
-      return NextResponse.json({ error: 'No autorizado (Falta permiso de caja)' }, { status: 403 });
-    }
+    const auth = await requirePermission('caja');
+    if (auth.response) return auth.response;
+    const session = auth.session;
 
     const { searchParams } = new URL(request.url);
     const userId = session.user.id;
@@ -45,13 +41,9 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-    if (!session?.user?.rol?.permisos?.caja) {
-      return NextResponse.json({ error: 'No autorizado (Falta permiso de caja)' }, { status: 403 });
-    }
+    const auth = await requirePermission('caja');
+    if (auth.response) return auth.response;
+    const session = auth.session;
 
     const body = await request.json();
     const { montoApertura, observaciones } = body;
@@ -99,13 +91,9 @@ export async function POST(request) {
 
 export async function PUT(request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-    if (!session?.user?.rol?.permisos?.caja) {
-      return NextResponse.json({ error: 'No autorizado (Falta permiso de caja)' }, { status: 403 });
-    }
+    const auth = await requirePermission('caja');
+    if (auth.response) return auth.response;
+    const session = auth.session;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -121,6 +109,10 @@ export async function PUT(request) {
 
     if (!anterior) {
       return NextResponse.json({ error: 'Turno de caja no encontrado' }, { status: 404 });
+    }
+
+    if (!canManageCajaTurno(session, anterior.usuarioId)) {
+      return NextResponse.json({ error: 'No puedes operar el turno de caja de otro usuario.' }, { status: 403 });
     }
 
     if (anterior.estado === 'cerrada') {
@@ -171,16 +163,11 @@ export async function PUT(request) {
         }
       });
 
-      // Sumar el dinero de ventas que entraron como efectivo
-      // Para método de pago "efectivo", el total entero va al flujo de caja.
-      // Para método de pago "mixto", sumamos montoEfectivo.
+      const paymentMethods = await getPaymentMethodsFromDb(prisma);
+
       let totalVentasEfectivo = 0;
       for (const v of ventasCaja) {
-        if (v.metodoPago === 'efectivo') {
-          totalVentasEfectivo += parseFloat(v.total);
-        } else if (v.metodoPago === 'mixto') {
-          totalVentasEfectivo += parseFloat(v.montoEfectivo);
-        }
+        totalVentasEfectivo += computeCajaCashFromVenta(v, paymentMethods);
       }
 
       const montoApert = parseFloat(anterior.montoApertura);

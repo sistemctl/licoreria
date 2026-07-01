@@ -1,0 +1,50 @@
+/* ── Module states ── */
+.state-panel--centered {
+  padding: 40px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.state-panel--denied {
+  padding: 40px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.state-panel--denied h2 {
+  font-size: var(--text-lg);
+  color: var(--color-ink);
+}
+
+.state-panel--denied p {
+  color: var(--color-muted);
+  max-width: 480px;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.pos-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 50vh;
+  gap: 16px;
+  color: var(--color-muted);
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--color-brand-soft);
+  border-left-color: var(--color-brand);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+}

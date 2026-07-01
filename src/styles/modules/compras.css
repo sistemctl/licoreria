@@ -1,0 +1,220 @@
+/* Compras / entradas de inventario */
+.compras-split-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 1.6fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.compras-form-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.compras-items-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.compras-items-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.compras-items-panel__header h5 {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  color: var(--color-brand);
+  font-weight: 600;
+  margin: 0;
+}
+
+.compras-lines-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-elevated);
+}
+
+.compras-lines-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.compras-lines-table th {
+  background: color-mix(in srgb, var(--color-brand-soft) 80%, var(--color-surface));
+  padding: 10px 8px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.compras-lines-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.compras-lines-table tr:last-child td {
+  border-bottom: none;
+}
+
+.compras-line-input {
+  padding: 6px 8px !important;
+  font-size: var(--text-sm) !important;
+  height: 36px;
+}
+
+.compras-line-input--qty {
+  text-align: center;
+  padding: 6px 4px !important;
+}
+
+.product-select-trigger {
+  padding: 8px 10px;
+  font-size: var(--text-sm);
+  height: 36px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  user-select: none;
+  width: 100%;
+}
+
+.product-select-trigger__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.product-select-trigger__label--empty {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.product-select-trigger__label--filled {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.compras-total-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 14px;
+  background: var(--color-brand-soft);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-brand-border);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.compras-total-bar strong {
+  color: var(--color-brand);
+  font-family: var(--font-data);
+  font-size: var(--text-md);
+  margin-left: 8px;
+}
+
+.no-data-text {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  text-align: center;
+  font-style: italic;
+  padding: 24px 16px;
+}
+
+.searchable-select-container {
+  position: relative;
+  width: 100%;
+}
+
+.searchable-dropdown-portal {
+  position: absolute;
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 1300;
+  margin-top: 4px;
+  padding: 4px 0;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-brand-border);
+  background: var(--color-surface-elevated);
+  border-radius: var(--radius-md);
+}
+
+.searchable-option {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.searchable-option:hover {
+  background: var(--color-brand);
+  color: #fff;
+}
+
+.searchable-option--rich {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.searchable-option--rich:last-child {
+  border-bottom: none;
+}
+
+.no-options {
+  padding: 10px 14px;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+.modal-details-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.account-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  font-size: var(--text-sm);
+  flex-wrap: wrap;
+}
+
+.account-summary-row__total {
+  text-align: right;
+}

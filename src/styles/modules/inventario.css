@@ -1,0 +1,566 @@
+/* ── Inventario — registro de anaquel ── */
+.inventory-page {
+  gap: var(--section-gap);
+}
+
+/* Panel principal — mazo único */
+.inventory-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 0;
+}
+
+/* Cabecera: título + métricas + acción */
+.inventory-deck__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.inventory-deck__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.inventory-deck__title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.inventory-deck__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.inventory-deck__count {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.inventory-deck__cta {
+  flex-shrink: 0;
+}
+
+/* Métricas — píldoras compactas, no barra separada */
+.inventory-deck__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.inv-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-muted);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.inv-metric svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.inv-metric--action {
+  border: none;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.inv-metric--action:hover {
+  background: var(--color-brand-soft);
+  color: var(--color-ink);
+}
+
+.inv-metric--action.inv-metric--active {
+  background: color-mix(in srgb, var(--color-brand) 10%, var(--color-surface-elevated));
+  color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px var(--color-brand-border);
+}
+
+.inv-metric--alert {
+  color: var(--color-danger);
+}
+
+.inv-metric--alert svg {
+  color: var(--color-danger);
+  opacity: 1;
+}
+
+.inv-metric--alert.inv-metric--active {
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface-elevated));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 25%, transparent);
+  color: var(--color-danger);
+}
+
+/* Filtros — una sola fila operativa */
+.inventory-deck__filters {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(130px, 180px) minmax(130px, 180px) auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.inv-search {
+  position: relative;
+  min-width: 0;
+}
+
+.inv-search__icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.inv-search__input {
+  width: 100%;
+  padding: 10px 40px 10px 44px !important;
+  font-size: var(--text-sm);
+}
+
+.inv-search__clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.inv-search__clear:hover {
+  background: var(--color-brand-soft);
+  color: var(--color-ink);
+}
+
+.inv-filter-select {
+  width: 100%;
+  font-size: var(--text-xs);
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+}
+
+.inv-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-muted);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  justify-self: end;
+}
+
+.inv-toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--color-brand);
+  cursor: pointer;
+}
+
+.inv-filter-clear {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.inventory-deck__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.inv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-elevated);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.inv-chip:hover {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+}
+
+.inv-chip svg {
+  opacity: 0.5;
+}
+
+.inv-chip:hover svg {
+  opacity: 1;
+}
+
+/* Tabla */
+.inventory-page .table-container {
+  border-color: var(--color-border);
+}
+
+.inventory-page .custom-table th {
+  background: var(--color-surface);
+  border-bottom-color: var(--color-border);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.inventory-page .custom-table .col-product {
+  min-width: 200px;
+}
+
+.inventory-page .custom-table .col-category {
+  width: 100px;
+}
+
+.inventory-page .custom-table .col-prices {
+  width: 160px;
+}
+
+.inventory-page .custom-table .col-stock {
+  width: 120px;
+}
+
+.inventory-page .custom-table .col-actions {
+  width: 108px;
+  text-align: right;
+}
+
+/* Celda producto */
+.product-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.product-cell__name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.35;
+}
+
+.product-cell__meta {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.product-cell__status {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+
+.category-tag {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+/* Precios — detal primero */
+.price-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.price-cell__main {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-brand);
+}
+
+.price-cell__sub {
+  font-size: 10px;
+  color: var(--color-muted);
+  line-height: 1.35;
+}
+
+/* Stock — firma visual: barra de anaquel */
+.stock-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stock-cell__row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.stock-cell__flag {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  flex-shrink: 0;
+  align-self: center;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 20%, transparent);
+}
+
+.stock-cell__qty {
+  font-size: var(--text-md);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stock-cell__qty--low {
+  color: var(--color-danger);
+}
+
+.stock-cell__unit {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.stock-cell__label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stock-cell__label--out {
+  color: var(--color-danger);
+}
+
+.stock-cell__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 72px;
+}
+
+.stock-meter {
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.stock-meter__fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.25s ease;
+}
+
+.stock-meter--ok .stock-meter__fill { background: var(--color-success); }
+.stock-meter--warn .stock-meter__fill { background: var(--color-warning); }
+.stock-meter--critical .stock-meter__fill { background: var(--color-danger); }
+
+/* Filas — énfasis solo cuando importa */
+.inventory-row--out .col-product {
+  box-shadow: inset 3px 0 0 var(--color-danger);
+}
+
+.inventory-row--out td {
+  background: color-mix(in srgb, var(--color-danger) 4%, var(--color-surface-elevated));
+}
+
+.inventory-row--low .stock-cell__qty {
+  color: var(--color-danger);
+}
+
+.inventory-row--inactive .product-cell__name {
+  color: var(--color-muted);
+}
+
+.inventory-row--out:hover td,
+.inventory-page .custom-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--color-brand-soft) 70%, var(--color-surface-elevated));
+}
+
+.inventory-row--out:hover td {
+  background: color-mix(in srgb, var(--color-danger) 6%, var(--color-brand-soft));
+}
+
+/* Acciones discretas */
+.inventory-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.inventory-actions .btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.inventory-actions__danger:hover {
+  color: var(--color-danger) !important;
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent) !important;
+}
+
+/* Código de barras */
+.barcode-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  flex-wrap: wrap;
+}
+
+.barcode-box h5 {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  margin: 0 0 2px;
+  color: var(--color-ink);
+}
+
+.barcode-box__hint {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  margin: 0;
+}
+
+/* Modal organizado */
+.inventory-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.inventory-form__section {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.inventory-form__legend {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-brand);
+  padding: 0 0 var(--space-2);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  width: 100%;
+}
+
+.inventory-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.form-grid-modal {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.span-2 { grid-column: span 2; }
+
+.row-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .inventory-deck__filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .inv-search {
+    grid-column: 1 / -1;
+  }
+
+  .inv-toggle,
+  .inv-filter-clear {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .inventory-deck__head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inventory-deck__cta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .inventory-deck__filters {
+    grid-template-columns: 1fr;
+  }
+
+  .inv-toggle,
+  .inv-filter-clear {
+    justify-self: stretch;
+  }
+
+  .form-grid-modal {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: span 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stock-meter__fill {
+    transition: none;
+  }
+}

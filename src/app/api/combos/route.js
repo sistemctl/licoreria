@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
+import { requireAnyPermission, requirePermission } from '@/lib/permissions.server';
 
 export async function GET(request) {
   try {
+    const auth = await requireAnyPermission(['combos', 'pos', 'inventario']);
+    if (auth.response) return auth.response;
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get('activeOnly') !== 'false';
 
@@ -33,6 +36,8 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const auth = await requirePermission('combos');
+    if (auth.response) return auth.response;
     const body = await request.json();
     const {
       nombre,
@@ -67,7 +72,7 @@ export async function POST(request) {
           categoriaId: parseInt(categoriaId),
           precioCompra: totalPrecioCompra,
           precioVentaDetal: parseFloat(precioVentaDetal),
-          stock: 9999, // Combos tienen stock virtual o calculado por ingredientes, use 9999 para simplificar o calculable
+          stock: 0,
           stockMinimo: 0,
           esCombo: true,
           activo: true
@@ -113,6 +118,9 @@ export async function POST(request) {
 
 export async function PUT(request) {
   try {
+    const auth = await requirePermission('combos');
+    if (auth.response) return auth.response;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -209,6 +217,8 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   try {
+    const auth = await requirePermission('combos');
+    if (auth.response) return auth.response;
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

@@ -279,6 +279,7 @@ model Venta {
   montoEfectivo       Decimal   @default(0) @map("monto_efectivo") @db.Decimal(12, 2)
   montoTarjeta        Decimal   @default(0) @map("monto_tarjeta") @db.Decimal(12, 2)
   montoTransferencia  Decimal   @default(0) @map("monto_transferencia") @db.Decimal(12, 2)
+  montosPago          Json?     @map("montos_pago") // { efectivo: 100, nequi: 50, ... }
   descuentoId         Int?      @map("descuento_id")
   cajaTurnoId         Int?      @map("caja_turno_id")
   estado              String    @default("completada") @db.VarChar(20) // "completada", "anulada"

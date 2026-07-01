@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Header from '@/components/Header';
+import { DashboardModule, ModulePanel, PanelToolbar } from '@/components/layout';
+import { ProductPicker } from '@/components/shared';
 import Table from '@/components/Table';
 import Modal from '@/components/Modal';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -23,7 +24,6 @@ export default function ComprasPage() {
   // Modal de selección de producto
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [activeRowIdx, setActiveRowIdx] = useState(null);
-  const [modalSearchQuery, setModalSearchQuery] = useState('');
 
   // Form
   const [proveedorId, setProveedorId] = useState('');
@@ -192,21 +192,17 @@ export default function ComprasPage() {
   const headers = ['ID', 'Fecha', 'Proveedor', 'Factura Prov.', 'Registrado Por', 'Total Compra', 'Acciones'];
 
   return (
-    <div>
-      <Header title="Registro y Control de Compras (Entradas)" />
-
-      <div className="table-actions glass-panel">
-        <button onClick={openNewModal} className="btn btn-primary" disabled={proveedores.length === 0}>
-          <Plus size={18} />
-          <span>Registrar Compra</span>
-        </button>
-      </div>
-
-      <div className="glass-panel" style={{ marginTop: '20px' }}>
-        {loading ? (
-          <p>Cargando compras...</p>
-        ) : (
-          <Table
+    <DashboardModule title="Compras">
+      <ModulePanel loading={loading} loadingMessage="Cargando compras...">
+        <PanelToolbar
+          actions={
+            <button onClick={openNewModal} className="btn btn-primary" disabled={proveedores.length === 0}>
+              <Plus size={18} />
+              <span>Registrar compra</span>
+            </button>
+          }
+        />
+        <Table
             headers={headers}
             data={filteredCompras}
             searchVal={searchVal}
@@ -228,200 +224,167 @@ export default function ComprasPage() {
               </tr>
             )}
           />
-        )}
-      </div>
+      </ModulePanel>
 
       {/* Modal Registrar Compra */}
-      <Modal isOpen={isNewOpen} onClose={() => setIsNewOpen(false)} title="Registrar Compra (Entrada de Inventario)" size="xl">
-        <form onSubmit={handleSubmit} className="form-modal-layout">
+      <Modal isOpen={isNewOpen} onClose={() => setIsNewOpen(false)} title="Registrar compra" size="xl">
+        <form onSubmit={handleSubmit} className="form-modal-layout compras-form">
           {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
           <div className="compras-split-layout">
-            {/* Columna Izquierda: Datos de Entrada de Factura */}
-            <div className="metadata-section glass-panel" onClick={(e) => e.stopPropagation()}>
-              <h5 className="section-title">Datos Generales</h5>
-              
-              <div className="form-group" style={{ position: 'relative' }}>
+            <div className="compras-form-panel" onClick={(e) => e.stopPropagation()}>
+              <h5 className="modal-block__title">Datos generales</h5>
+
+              <div className="form-group searchable-select-container">
                 <label className="label-field">Proveedor</label>
-                <div className="searchable-select-container">
-                  <input 
-                    type="text" 
-                    className="input-field pd-select-wide"
-                    placeholder="Buscar proveedor..."
-                    value={provSearch}
-                    onFocus={(e) => {
-                      const rect = e.target.getBoundingClientRect();
-                      setDropdownCoords({
-                        top: rect.bottom + window.scrollY,
-                        left: rect.left + window.scrollX,
-                        width: rect.width
-                      });
-                      setActiveDropdownIdx('proveedor');
-                      setDropdownSearch('');
-                      setProvSearch('');
-                    }}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setProvSearch(val);
-                      setDropdownSearch(val);
-                      const rect = e.target.getBoundingClientRect();
-                      setDropdownCoords({
-                        top: rect.bottom + window.scrollY,
-                        left: rect.left + window.scrollX,
-                        width: rect.width
-                      });
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="label-field">Factura Proveedor # (Opcional)</label>
-                <input 
-                  type="text" 
-                  value={numFacturaProveedor} 
-                  onChange={(e) => setNumFacturaProveedor(e.target.value)} 
-                  className="input-field" 
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Buscar proveedor..."
+                  value={provSearch}
+                  onFocus={(e) => {
+                    const rect = e.target.getBoundingClientRect();
+                    setDropdownCoords({
+                      top: rect.bottom + window.scrollY,
+                      left: rect.left + window.scrollX,
+                      width: rect.width
+                    });
+                    setActiveDropdownIdx('proveedor');
+                    setDropdownSearch('');
+                    setProvSearch('');
+                  }}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProvSearch(val);
+                    setDropdownSearch(val);
+                    const rect = e.target.getBoundingClientRect();
+                    setDropdownCoords({
+                      top: rect.bottom + window.scrollY,
+                      left: rect.left + window.scrollX,
+                      width: rect.width
+                    });
+                  }}
                 />
               </div>
 
               <div className="form-group">
-                <label className="label-field">Observaciones de Compra</label>
-                <textarea 
-                  value={observaciones} 
-                  onChange={(e) => setObservaciones(e.target.value)} 
-                  className="input-field" 
+                <label className="label-field">Factura proveedor # (opcional)</label>
+                <input
+                  type="text"
+                  value={numFacturaProveedor}
+                  onChange={(e) => setNumFacturaProveedor(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="label-field">Observaciones</label>
+                <textarea
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  className="input-field"
                   rows={3}
-                  placeholder="Escribe observaciones aquí..."
-                  style={{ resize: 'none', minHeight: '80px' }}
+                  placeholder="Notas sobre esta entrada..."
                 />
-              </div>
-
-              <div className="form-buttons">
-                <button type="button" onClick={() => setIsNewOpen(false)} className="btn btn-secondary">Cancelar</button>
-                <button type="submit" className="btn btn-primary">Registrar Compra</button>
               </div>
             </div>
 
-            {/* Columna Derecha: Productos Comprados */}
-            <div className="ingredients-section" onClick={(e) => e.stopPropagation()} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', height: '100%' }}>
-              <div className="ingredients-header">
-                <h5>Productos Comprados</h5>
-                <button 
-                  type="button" 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    addDetailRow(); 
-                  }} 
+            <div className="compras-items-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="compras-items-panel__header">
+                <h5>Productos comprados</h5>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addDetailRow();
+                  }}
                   className="btn btn-secondary compact-btn"
                 >
-                  + Agregar Fila
+                  + Agregar fila
                 </button>
               </div>
 
-              <div className="table-container" style={{ maxHeight: '380px', overflowY: 'auto', border: '1px solid rgba(212, 168, 83, 0.15)', borderRadius: '8px' }}>
-                <table className="custom-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <div className="compras-lines-scroll">
+                <p className="field-hint" style={{ marginBottom: '8px' }}>
+                  Los lotes son informativos para alertas de vencimiento; las ventas descuentan stock general del producto.
+                </p>
+                <table className="compras-lines-table">
                   <thead>
-                    <tr style={{ background: 'rgba(212, 168, 83, 0.08)' }}>
-                      <th style={{ width: '38%', padding: '10px 8px', color: 'var(--text-secondary)' }}>Producto</th>
-                      <th style={{ width: '10%', padding: '10px 8px', textAlign: 'center', color: 'var(--text-secondary)' }}>Cant.</th>
-                      <th style={{ width: '14%', padding: '10px 8px', textAlign: 'center', color: 'var(--text-secondary)' }}>Costo U. ($)</th>
-                      <th style={{ width: '13%', padding: '10px 8px', color: 'var(--text-secondary)' }}>Lote #</th>
-                      <th style={{ width: '13%', padding: '10px 8px', color: 'var(--text-secondary)' }}>Vence</th>
-                      <th style={{ width: '12%', padding: '10px 8px', textAlign: 'right', color: 'var(--text-secondary)' }}>Subtotal</th>
-                      <th style={{ width: '5%', padding: '10px 8px', textAlign: 'center' }}></th>
+                    <tr>
+                      <th>Producto</th>
+                      <th style={{ width: '72px', textAlign: 'center' }}>Cant.</th>
+                      <th style={{ width: '96px', textAlign: 'center' }}>Costo U.</th>
+                      <th style={{ width: '88px' }}>Lote #</th>
+                      <th style={{ width: '120px' }}>Vence</th>
+                      <th style={{ width: '96px', textAlign: 'right' }}>Subtotal</th>
+                      <th style={{ width: '40px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {detalles.map((det, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid rgba(212, 168, 83, 0.08)' }}>
-                        <td style={{ padding: '6px 8px' }}>
-                          <div 
-                            className="input-field pd-select-wide"
-                            style={{ 
-                              padding: '8px 10px', 
-                              fontSize: '13px', 
-                              height: '36px', 
-                              cursor: 'pointer', 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'space-between',
-                              background: '#ffffff',
-                              border: '1px solid rgba(0, 0, 0, 0.15)',
-                              borderRadius: '6px',
-                              userSelect: 'none'
-                            }}
+                      <tr key={idx}>
+                        <td>
+                          <div
+                            className="product-select-trigger"
                             onClick={() => {
                               setActiveRowIdx(idx);
                               setModalSearchQuery('');
                               setIsProductModalOpen(true);
                             }}
                           >
-                            <span style={{ 
-                              color: det.prodSearch ? '#1e293b' : '#94a3b8', 
-                              fontWeight: det.prodSearch ? '600' : 'normal', 
-                              overflow: 'hidden', 
-                              textOverflow: 'ellipsis', 
-                              whiteSpace: 'nowrap',
-                              maxWidth: '85%' 
-                            }}>
-                              {det.prodSearch || "Seleccionar producto..."}
+                            <span className={`product-select-trigger__label ${det.prodSearch ? 'product-select-trigger__label--filled' : 'product-select-trigger__label--empty'}`}>
+                              {det.prodSearch || 'Seleccionar producto...'}
                             </span>
-                            <Search size={14} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+                            <Search size={14} />
                           </div>
                         </td>
-                        <td style={{ padding: '6px 4px' }}>
+                        <td>
                           <input
                             type="number"
                             min="1"
                             value={det.cantidad}
                             onChange={(e) => updateDetailRow(idx, 'cantidad', parseInt(e.target.value) || 1)}
-                            className="input-field text-center"
-                            style={{ padding: '6px 4px', fontSize: '13px', height: '36px' }}
+                            className="input-field compras-line-input compras-line-input--qty"
                           />
                         </td>
-                        <td style={{ padding: '6px 4px' }}>
+                        <td>
                           <input
                             type="number"
                             step="0.01"
                             value={det.precioUnitario}
                             onChange={(e) => updateDetailRow(idx, 'precioUnitario', parseFloat(e.target.value) || 0)}
-                            className="input-field text-center font-mono"
-                            style={{ padding: '6px 4px', fontSize: '13px', height: '36px' }}
+                            className="input-field compras-line-input compras-line-input--qty data-money"
                           />
                         </td>
-                        <td style={{ padding: '6px 4px' }}>
+                        <td>
                           <input
                             type="text"
                             placeholder="Lote"
                             value={det.numeroLote}
                             onChange={(e) => updateDetailRow(idx, 'numeroLote', e.target.value)}
-                            className="input-field"
-                            style={{ padding: '8px 10px', fontSize: '13px', height: '36px' }}
+                            className="input-field compras-line-input"
                           />
                         </td>
-                        <td style={{ padding: '6px 4px' }}>
+                        <td>
                           <input
                             type="date"
                             value={det.fechaVencimiento}
                             onChange={(e) => updateDetailRow(idx, 'fechaVencimiento', e.target.value)}
-                            className="input-field"
-                            style={{ padding: '8px 8px', fontSize: '12px', height: '36px' }}
+                            className="input-field compras-line-input"
                           />
                         </td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: 'var(--text-primary)' }}>
+                        <td className="data-money" style={{ textAlign: 'right', fontWeight: 600 }}>
                           {formatCurrency(det.cantidad * det.precioUnitario)}
                         </td>
-                        <td style={{ padding: '6px 4px', textAlign: 'center' }}>
-                          <button 
-                            type="button" 
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               removeDetailRow(idx);
-                            }} 
-                            className="btn btn-danger" 
+                            }}
+                            className="btn btn-danger btn-icon"
                             title="Eliminar fila"
-                            style={{ padding: '6px', height: '32px', width: '32px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -431,19 +394,22 @@ export default function ComprasPage() {
                   </tbody>
                 </table>
                 {detalles.length === 0 && (
-                  <p className="no-data-text">No has agregado ningún producto todavía.</p>
+                  <p className="no-data-text">Agrega al menos un producto con «Agregar fila».</p>
                 )}
               </div>
 
-              {/* Total acumulado de la compra en tiempo real */}
               {detalles.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 16px', background: 'rgba(212, 168, 83, 0.05)', borderRadius: '6px', border: '1px solid rgba(212, 168, 83, 0.1)' }}>
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                    Total Items Seleccionados: <strong style={{ color: 'var(--accent-gold)', fontSize: '16px', marginLeft: '6px' }}>{formatCurrency(detalles.reduce((sum, d) => sum + (d.cantidad * d.precioUnitario), 0))}</strong>
-                  </span>
+                <div className="compras-total-bar">
+                  Total de la entrada:
+                  <strong>{formatCurrency(detalles.reduce((sum, d) => sum + (d.cantidad * d.precioUnitario), 0))}</strong>
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="modal-form-footer">
+            <button type="button" onClick={() => setIsNewOpen(false)} className="btn btn-secondary">Cancelar</button>
+            <button type="submit" className="btn btn-primary">Registrar compra</button>
           </div>
 
           {mounted && activeDropdownIdx !== null && createPortal(
@@ -633,497 +599,20 @@ export default function ComprasPage() {
         )}
       </Modal>
 
-      {/* Selector de Producto Modal */}
-      {isProductModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.6)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 999999,
-          padding: '16px'
-        }} onClick={() => setIsProductModalOpen(false)}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            width: '100%',
-            maxWidth: '800px',
-            maxHeight: '85vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            border: '1px solid rgba(212, 168, 83, 0.2)',
-            animation: 'modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-          }} onClick={(e) => e.stopPropagation()}>
-            
-            {/* Header */}
-            <div style={{
-              padding: '20px 24px',
-              borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#fafafa'
-            }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Seleccionar Producto</h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>Elige un producto para agregarlo a la fila de compra</p>
-              </div>
-              <button 
-                type="button" 
-                onClick={() => setIsProductModalOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: '8px',
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                  color: '#64748b',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.2s'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.05)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'none'}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Buscador dentro del modal */}
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(0, 0, 0, 0.05)', background: '#ffffff' }}>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <input 
-                  type="text"
-                  placeholder="Buscar por nombre, marca o código de barras..."
-                  value={modalSearchQuery}
-                  onChange={(e) => setModalSearchQuery(e.target.value)}
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px 12px 48px',
-                    fontSize: '14.5px',
-                    borderRadius: '8px',
-                    border: '1.5px solid var(--accent-gold)',
-                    outline: 'none',
-                    boxShadow: '0 2px 8px rgba(212, 168, 83, 0.1)',
-                    transition: 'border-color 0.2s'
-                  }}
-                />
-                <Search size={18} style={{
-                  position: 'absolute',
-                  left: '16px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--accent-gold)'
-                }} />
-                {modalSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setModalSearchQuery('')}
-                    style={{
-                      position: 'absolute',
-                      right: '16px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#94a3b8'
-                    }}
-                  >
-                    <X size={16} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Listado de Productos */}
-            <div style={{
-              flexGrow: 1,
-              overflowY: 'auto',
-              padding: '20px 24px',
-              background: '#f8fafc',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px'
-            }}>
-              {(() => {
-                const filtered = productos.filter(p => 
-                  p.nombre.toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
-                  (p.marca && p.marca.toLowerCase().includes(modalSearchQuery.toLowerCase())) ||
-                  (p.codigoBarras && p.codigoBarras.includes(modalSearchQuery))
-                );
-
-                if (filtered.length === 0) {
-                  return (
-                    <div style={{
-                      textAlign: 'center',
-                      padding: '40px 20px',
-                      color: '#64748b',
-                      fontSize: '14px'
-                    }}>
-                      No se encontraron productos que coincidan con la búsqueda.
-                    </div>
-                  );
-                }
-
-                return filtered.map(p => (
-                  <div 
-                    key={p.id}
-                    onClick={() => {
-                      setDetalles(detalles.map((d, i) => i === activeRowIdx ? {
-                        ...d,
-                        productoId: p.id,
-                        prodSearch: p.nombre,
-                        precioUnitario: parseFloat(p.precioCompra) || 0
-                      } : d));
-                      setIsProductModalOpen(false);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      background: '#ffffff',
-                      border: '1px solid rgba(0, 0, 0, 0.08)',
-                      borderRadius: '12px',
-                      padding: '12px 18px',
-                      cursor: 'pointer',
-                      transition: 'transform 0.15s, border-color 0.15s, box-shadow 0.15s',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                    }}
-                    className="modal-product-card"
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--accent-gold)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(212, 168, 83, 0.15)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.08)';
-                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
-                      e.currentTarget.style.transform = 'none';
-                    }}
-                  >
-                    {/* Foto */}
-                    <div style={{
-                      width: '80px',
-                      height: '80px',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      background: 'rgba(212, 168, 83, 0.05)',
-                      border: '1px solid rgba(0, 0, 0, 0.08)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: '20px',
-                      flexShrink: 0
-                    }}>
-                      {p.imagenUrl ? (
-                        <img 
-                          src={p.imagenUrl} 
-                          alt={p.nombre} 
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            if (e.target.nextSibling) e.target.nextSibling.style.display = 'block';
-                          }}
-                        />
-                      ) : null}
-                      <svg 
-                        style={{ 
-                          width: '36px', 
-                          height: '36px', 
-                          color: 'var(--accent-gold)', 
-                          display: p.imagenUrl ? 'none' : 'block' 
-                        }} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-
-                    {/* Detalle */}
-                    <div style={{ flexGrow: 1, minWidth: 0, textAlign: 'left' }}>
-                      <h4 style={{ margin: 0, fontSize: '16.5px', fontWeight: '700', color: '#1e293b' }}>{p.nombre}</h4>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px', fontSize: '12px' }}>
-                        {p.marca && <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', color: '#475569', fontWeight: '500' }}>{p.marca}</span>}
-                        {p.contenidoMl && <span style={{ background: '#e2e8f0', padding: '2px 8px', borderRadius: '4px', color: '#1e293b', fontWeight: '600' }}>{p.contenidoMl} ml</span>}
-                        {p.stock !== undefined && (
-                          <span style={{ 
-                            background: p.stock <= p.stockMinimo ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', 
-                            color: p.stock <= p.stockMinimo ? 'var(--error-red)' : '#16a34a',
-                            padding: '2px 8px', 
-                            borderRadius: '4px',
-                            fontWeight: '600'
-                          }}>
-                            Stock: {p.stock}
-                          </span>
-                        )}
-                        {p.codigoBarras && <span style={{ color: '#94a3b8', display: 'flex', alignItems: 'center' }}>Cód: {p.codigoBarras}</span>}
-                      </div>
-                    </div>
-
-                    {/* Costo */}
-                    <div style={{ textAlign: 'right', marginLeft: '16px', flexShrink: 0 }}>
-                      <span style={{ fontSize: '10px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: '600', display: 'block', marginBottom: '2px' }}>Costo Compra</span>
-                      <span style={{ fontSize: '18px', fontWeight: '800', color: 'var(--accent-gold)' }}>{formatCurrency(p.precioCompra)}</span>
-                    </div>
-                  </div>
-                ));
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style jsx>{`
-        .compras-split-layout {
-          display: grid;
-          grid-template-columns: 1fr 1.6fr;
-          gap: 24px;
-          align-items: start;
-        }
-
-        .metadata-section {
-          background: rgba(255, 255, 255, 0.7);
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(212, 168, 83, 0.15);
-          border-radius: 12px;
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-        }
-
-        .section-title {
-          font-size: 15px;
-          color: var(--accent-gold);
-          font-weight: 600;
-          margin-bottom: 4px;
-          text-transform: uppercase;
-          letter-spacing: 0.03em;
-        }
-
-        .table-actions {
-          display: flex;
-          justify-content: flex-end;
-          padding: 16px;
-        }
-
-        .table-row-actions {
-          display: flex;
-          gap: 6px;
-        }
-
-        .form-modal-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-row {
-          display: flex;
-          gap: 16px;
-        }
-
-        .half {
-          flex: 1;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .ingredients-section {
-          background: rgba(212, 168, 83, 0.03);
-          border: 1px solid rgba(212, 168, 83, 0.15);
-          border-radius: 10px;
-          padding: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .ingredients-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .ingredients-header h5 {
-          color: var(--accent-gold);
-          font-weight: 600;
-        }
-
-        .compact-btn {
-          padding: 6px 12px;
-          font-size: 12px;
-        }
-
-        .ingredients-rows {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          max-height: 390px;
-          overflow-y: auto;
-          padding-right: 4px;
-        }
-
-        /* Purchase Detail Card Layout */
-        .purchase-detail-card {
-          background: #ffffff;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          border-radius: 8px;
-          padding: 12px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-        }
-
-        .pd-card-row {
-          display: flex;
-          width: 100%;
-        }
-
-        .pd-select-wide {
-          width: 100%;
-          cursor: pointer;
-        }
-
-        .pd-card-grid {
-          display: grid;
-          grid-template-columns: 1fr 1.2fr 1fr 1.2fr auto;
-          gap: 10px;
-          align-items: flex-end;
-        }
-
-        .label-field-small {
-          font-size: 10.5px;
-          color: var(--text-secondary);
-          margin-bottom: 2px;
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
-          font-weight: 600;
-        }
-
-        .delete-btn-group {
-          display: flex;
-          justify-content: center;
-        }
-
-        .compact-btn-icon-new {
-          padding: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 38px;
-          width: 38px;
-          border-radius: 6px;
-        }
-
-        .no-data-text {
-          color: var(--text-secondary);
-          font-size: 13px;
-          text-align: center;
-          font-style: italic;
-          padding: 16px 0;
-        }
-
-        /* Searchable Select styles */
-        .searchable-select-container {
-          position: relative;
-          width: 100%;
-          z-index: 999;
-        }
-
-        .searchable-dropdown-portal {
-          position: absolute;
-          max-height: 220px;
-          overflow-y: auto;
-          z-index: 999999 !important;
-          margin-top: 4px;
-          padding: 4px 0;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-          border: 1px solid rgba(212, 168, 83, 0.25);
-          background: #ffffff !important;
-          border-radius: 8px;
-        }
-
-        .searchable-option {
-          padding: 10px 14px;
-          cursor: pointer;
-          font-size: 13.5px;
-          color: var(--text-primary);
-          transition: background 0.15s, color 0.15s;
-        }
-
-        .searchable-option:hover {
-          background: var(--accent-gold);
-          color: #ffffff;
-        }
-
-        .no-options {
-          padding: 8px 12px;
-          font-size: 13px;
-          color: var(--text-secondary);
-          font-style: italic;
-        }
-
-        .form-buttons {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          margin-top: 10px;
-        }
-
-        .error-banner {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid var(--error-red);
-          color: var(--error-red);
-          padding: 10px;
-          border-radius: 6px;
-          font-size: 13px;
-        }
-
-        .account-summary-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 16px;
-          font-size: 13px;
-        }
-
-        .modal-details-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .text-xs { font-size: 11px; }
-
-        @keyframes modalFadeIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-      `}</style>
-    </div>
+      <ProductPicker
+        open={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        products={productos}
+        onSelect={(p) => {
+          setDetalles(detalles.map((d, i) => i === activeRowIdx ? {
+            ...d,
+            productoId: p.id,
+            prodSearch: p.nombre,
+            precioUnitario: parseFloat(p.precioCompra) || 0
+          } : d));
+        }}
+        subtitle="Elige un producto para esta fila de compra"
+      />
+    </DashboardModule>
   );
 }

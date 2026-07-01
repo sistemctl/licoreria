@@ -4,6 +4,26 @@ import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/audit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { hasFullAdminAccess } from '@/lib/permissions';
+
+async function countEffectiveAdmins(excludeUserId = null) {
+  const users = await prisma.usuario.findMany({
+    where: {
+      activo: true,
+      ...(excludeUserId ? { id: { not: parseInt(excludeUserId) } } : {}),
+    },
+    include: { rol: true },
+  });
+  return users.filter((u) => hasFullAdminAccess(u.rol?.permisos)).length;
+}
+
+async function userHasAdminAccess(userId) {
+  const user = await prisma.usuario.findUnique({
+    where: { id: parseInt(userId) },
+    include: { rol: true },
+  });
+  return user?.activo && hasFullAdminAccess(user?.rol?.permisos);
+}
 
 export async function GET(request) {
   try {
@@ -111,6 +131,43 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
+    const targetId = parseInt(id);
+    const sessionUserId = parseInt(session.user.id);
+
+    if (targetId === sessionUserId && activo === false) {
+      return NextResponse.json({ error: 'No puedes desactivar tu propia cuenta.' }, { status: 400 });
+    }
+
+    if (rolId !== undefined) {
+      const newRol = await prisma.rol.findUnique({ where: { id: parseInt(rolId) } });
+      const oldRol = await prisma.rol.findUnique({ where: { id: anterior.rolId } });
+      const wasAdmin = hasFullAdminAccess(oldRol?.permisos);
+      const willBeAdmin = hasFullAdminAccess(newRol?.permisos);
+
+      if (wasAdmin && !willBeAdmin && anterior.activo) {
+        const remaining = await countEffectiveAdmins(targetId);
+        if (remaining < 1) {
+          return NextResponse.json(
+            { error: 'No puedes cambiar el rol: este usuario es el único administrador del sistema.' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    if (activo === false && anterior.activo) {
+      const isAdmin = await userHasAdminAccess(targetId);
+      if (isAdmin) {
+        const remaining = await countEffectiveAdmins(targetId);
+        if (remaining < 1) {
+          return NextResponse.json(
+            { error: 'No puedes desactivar al único administrador del sistema.' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     if (username && username !== anterior.username) {
       const existe = await prisma.usuario.findUnique({ where: { username } });
       if (existe) {
@@ -173,6 +230,24 @@ export async function DELETE(request) {
 
     if (!anterior) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+    }
+
+    const targetId = parseInt(id);
+    const sessionUserId = parseInt(session.user.id);
+
+    if (targetId === sessionUserId) {
+      return NextResponse.json({ error: 'No puedes desactivar tu propia cuenta.' }, { status: 400 });
+    }
+
+    const isAdmin = await userHasAdminAccess(targetId);
+    if (isAdmin) {
+      const remaining = await countEffectiveAdmins(targetId);
+      if (remaining < 1) {
+        return NextResponse.json(
+          { error: 'No puedes desactivar al único administrador del sistema.' },
+          { status: 400 }
+        );
+      }
     }
 
     const desactivado = await prisma.usuario.update({

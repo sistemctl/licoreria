@@ -1,0 +1,84 @@
+/* Buttons */
+.btn,
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: calc(10px * var(--space-unit)) calc(18px * var(--space-unit));
+  border-radius: var(--btn-radius, var(--radius-md));
+  font-size: var(--text-base);
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  border: none;
+  text-decoration: none;
+  box-shadow: var(--shadow-xs);
+  outline: none;
+  white-space: nowrap;
+}
+
+.btn:focus-visible,
+.ui-btn:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+.btn-primary,
+.ui-btn--primary {
+  background: var(--color-brand);
+  color: #fff;
+}
+.btn-primary:hover,
+.ui-btn--primary:hover {
+  background: var(--color-brand-hover);
+  box-shadow: var(--shadow-brand);
+  transform: translateY(-1px);
+}
+
+.btn-secondary,
+.ui-btn--secondary {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-brand-border);
+}
+.btn-secondary:hover,
+.ui-btn--secondary:hover {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+  transform: translateY(-1px);
+}
+
+.btn-danger, .ui-btn--danger {
+  background: var(--color-danger);
+  color: #fff;
+}
+.btn-danger:hover { background: #991B1B; transform: translateY(-1px); }
+
+.btn-success, .ui-btn--success {
+  background: var(--color-success);
+  color: #fff;
+}
+.btn-success:hover { background: #166534; transform: translateY(-1px); }
+
+.btn-ghost, .ui-btn--ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+  color: var(--color-muted);
+}
+.btn-ghost:hover { background: var(--color-brand-soft); color: var(--color-ink); }
+
+.btn-sm, .ui-btn--sm { padding: 6px 12px; font-size: var(--text-sm); }
+.btn-lg, .ui-btn--lg { padding: 14px 24px; font-size: var(--text-md); }
+
+.btn:active, .ui-btn:active { transform: scale(0.98); }
+.btn:disabled, .ui-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.w-full { width: 100%; }

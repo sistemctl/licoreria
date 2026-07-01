@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Header from '@/components/Header';
+import { DashboardModule, ModulePanel, PanelToolbar } from '@/components/layout';
 import Table from '@/components/Table';
 import Modal from '@/components/Modal';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
@@ -138,21 +138,17 @@ export default function ProveedoresPage() {
   const headers = ['ID', 'RIF / NIT', 'Razón Social', 'Contacto', 'Persona Contacto', 'Estado', 'Acciones'];
 
   return (
-    <div>
-      <Header title="Gestión de Proveedores" />
-
-      <div className="table-actions glass-panel">
-        <button onClick={openNewModal} className="btn btn-primary">
-          <Plus size={18} />
-          <span>Nuevo Proveedor</span>
-        </button>
-      </div>
-
-      <div className="glass-panel" style={{ marginTop: '20px' }}>
-        {loading ? (
-          <p>Cargando proveedores...</p>
-        ) : (
-          <Table
+    <DashboardModule title="Proveedores">
+      <ModulePanel loading={loading} loadingMessage="Cargando proveedores...">
+        <PanelToolbar
+          actions={
+            <button onClick={openNewModal} className="btn btn-primary">
+              <Plus size={18} />
+              <span>Nuevo Proveedor</span>
+            </button>
+          }
+        />
+        <Table
             headers={headers}
             data={filteredData}
             searchVal={searchVal}
@@ -187,9 +183,8 @@ export default function ProveedoresPage() {
                 </td>
               </tr>
             )}
-          />
-        )}
-      </div>
+        />
+      </ModulePanel>
 
       {/* Modal Form */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={modalTitle}>
@@ -280,70 +275,6 @@ export default function ProveedoresPage() {
           </div>
         </form>
       </Modal>
-
-      <style jsx>{`
-        .table-actions {
-          display: flex;
-          justify-content: flex-end;
-          padding: 16px;
-        }
-
-        .table-row-actions {
-          display: flex;
-          gap: 6px;
-        }
-
-        .contact-details {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-
-        .text-xs { font-size: 11px; }
-
-        .form-modal-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-row {
-          display: flex;
-          gap: 16px;
-        }
-
-        .half {
-          flex: 1;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .row-checkbox {
-          flex-direction: row;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .form-buttons {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          margin-top: 10px;
-        }
-
-        .error-banner {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid var(--error-red);
-          color: var(--error-red);
-          padding: 10px;
-          border-radius: 6px;
-          font-size: 13px;
-        }
-      `}</style>
-    </div>
+    </DashboardModule>
   );
 }

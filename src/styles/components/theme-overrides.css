@@ -1,0 +1,101 @@
+/* Theme overrides — botones, sidebar, sombras según configuración */
+
+/* ── Estilos de botón ── */
+[data-button-style="soft"] .btn-primary,
+[data-button-style="soft"] .ui-btn--primary {
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+  box-shadow: none;
+}
+
+[data-button-style="soft"] .btn-primary:hover,
+[data-button-style="soft"] .ui-btn--primary:hover {
+  background: color-mix(in srgb, var(--color-brand) 18%, transparent);
+  color: var(--color-brand-hover);
+  box-shadow: none;
+}
+
+[data-button-style="outline"] .btn-primary,
+[data-button-style="outline"] .ui-btn--primary {
+  background: transparent;
+  color: var(--color-brand);
+  border: 1.5px solid var(--color-brand);
+  box-shadow: none;
+}
+
+[data-button-style="outline"] .btn-primary:hover,
+[data-button-style="outline"] .ui-btn--primary:hover {
+  background: var(--color-brand-soft);
+  box-shadow: none;
+}
+
+/* ── Sidebar alternativo ── */
+[data-sidebar-style="claro"] .sidebar {
+  background: var(--color-surface-elevated);
+  border-right: 1px solid var(--color-border);
+}
+
+[data-sidebar-style="claro"] .sidebar-brand {
+  border-bottom-color: var(--color-border);
+}
+
+[data-sidebar-style="claro"] .sidebar-brand h2,
+[data-sidebar-style="claro"] .menu-link:hover,
+[data-sidebar-style="claro"] .menu-link.active {
+  color: var(--color-ink);
+}
+
+[data-sidebar-style="claro"] .sidebar-eyebrow,
+[data-sidebar-style="claro"] .section-title,
+[data-sidebar-style="claro"] .menu-link {
+  color: var(--color-muted);
+}
+
+[data-sidebar-style="claro"] .menu-link:hover {
+  background: var(--color-brand-soft);
+}
+
+[data-sidebar-style="claro"] .menu-link.active {
+  color: var(--color-brand);
+  border-left-color: var(--color-brand);
+}
+
+[data-sidebar-style="claro"] .sidebar-footer {
+  border-top-color: var(--color-border);
+}
+
+[data-sidebar-style="claro"] .sidebar-close-btn {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+[data-sidebar-style="contraste"] .sidebar {
+  background: #1e293b;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-sidebar-style="contraste"] .sidebar-brand h2,
+[data-sidebar-style="contraste"] .menu-link:hover {
+  color: #f1f5f9;
+}
+
+[data-sidebar-style="contraste"] .menu-link.active {
+  color: var(--color-brand-light);
+}
+
+/* ── Sombras en paneles ── */
+[data-shadow-ui="ninguna"] .glass-panel,
+[data-shadow-ui="ninguna"] .ui-panel {
+  box-shadow: none;
+}
+
+[data-shadow-ui="marcada"] .glass-panel,
+[data-shadow-ui="marcada"] .ui-panel {
+  box-shadow: 0 4px 16px rgba(28, 25, 23, 0.1), 0 8px 28px rgba(28, 25, 23, 0.07);
+}
+
+[data-theme="oscuro"][data-shadow-ui="marcada"] .glass-panel,
+[data-theme="oscuro"][data-shadow-ui="marcada"] .ui-panel {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}

@@ -1,0 +1,312 @@
+/* ── Caja — turno y arqueo ── */
+
+.caja-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.caja-page__hint {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-brand-soft);
+  border: 1px solid var(--color-brand-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-walnut);
+  line-height: 1.5;
+}
+
+.caja-page__hint strong {
+  color: var(--color-brand);
+  font-weight: 600;
+}
+
+/* Panel del turno activo */
+.caja-turno {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  border-top: 3px solid var(--color-brand);
+}
+
+.caja-turno.is-open {
+  border-top-color: var(--color-success);
+}
+
+.caja-turno.is-closed {
+  border-top-color: var(--color-warning);
+}
+
+.caja-turno__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.caja-turno__status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.caja-turno__eyebrow {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.caja-turno__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.2;
+}
+
+.caja-turno__meta {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.caja-turno__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.caja-turno__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.caja-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.caja-metric--primary {
+  background: color-mix(in srgb, var(--color-brand) 6%, var(--color-surface));
+  border-color: var(--color-brand-border);
+}
+
+.caja-metric__value {
+  font-family: var(--font-data);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.caja-metric__value.is-negative {
+  color: var(--color-danger);
+}
+
+.caja-metric__label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+
+.caja-turno__cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.caja-turno__cta-copy {
+  flex: 1;
+  min-width: 200px;
+}
+
+.caja-turno__cta-copy p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: 1.5;
+  max-width: 42ch;
+}
+
+/* Historial */
+.caja-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.caja-history__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.caja-history__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.caja-history__filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.caja-filter-btn {
+  padding: 7px 14px;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  color: var(--color-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.caja-filter-btn:hover {
+  color: var(--color-ink);
+  border-color: var(--color-brand-border);
+}
+
+.caja-filter-btn.is-active {
+  color: var(--color-brand);
+  background: var(--color-brand-soft);
+  border-color: var(--color-brand-border);
+  font-weight: 600;
+}
+
+.caja-filter-btn:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Tabla historial */
+.caja-history-table .custom-table th {
+  white-space: nowrap;
+}
+
+.caja-history-table .col-money {
+  font-family: var(--font-data);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.caja-history-table .col-diff {
+  font-weight: 600;
+}
+
+.caja-history-table tr.is-current td {
+  background: color-mix(in srgb, var(--color-success) 5%, transparent);
+}
+
+.caja-history-table tr.has-discrepancy td.col-diff {
+  background: color-mix(in srgb, var(--color-danger) 6%, transparent);
+}
+
+.caja-history-table .col-cajero {
+  font-weight: 500;
+}
+
+.caja-history-table .col-date {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.caja-history-empty {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+/* Modales caja */
+.caja-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.caja-form__note {
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.caja-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 768px) {
+  .caja-turno__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .caja-turno__top {
+    flex-direction: column;
+  }
+
+  .caja-turno__actions {
+    width: 100%;
+  }
+
+  .caja-turno__actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .caja-turno__cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .caja-history-table .table-container {
+    overflow-x: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caja-filter-btn {
+    transition: none;
+  }
+}

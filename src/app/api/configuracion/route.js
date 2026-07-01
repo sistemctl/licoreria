@@ -3,19 +3,29 @@ import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { filterPublicConfig } from '@/lib/publicConfig';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
+    const session = await getServerSession(authOptions);
     const configs = await prisma.configuracion.findMany();
-    // Transformar a objeto clave-valor para fácil consumo
     const configMap = {};
-    configs.forEach(c => {
+    configs.forEach((c) => {
       configMap[c.clave] = c.valor;
     });
 
-    return NextResponse.json({ configs, configMap });
+    const isAdmin = session?.user?.rol?.permisos?.configuracion;
+    if (!session?.user?.id || !isAdmin) {
+      return NextResponse.json({
+        configs: configs.filter((c) => filterPublicConfig({ [c.clave]: c.valor })[c.clave] !== undefined),
+        configMap: filterPublicConfig(configMap),
+        publicOnly: true,
+      });
+    }
+
+    return NextResponse.json({ configs, configMap, publicOnly: false });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

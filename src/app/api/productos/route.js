@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
-import { requireAnyPermission, requirePermission } from '@/lib/permissions';
+import { requireAnyPermission, requirePermission } from '@/lib/permissions.server';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +17,7 @@ export async function GET(request) {
     const barcode = searchParams.get('barcode');
     const sortByPopularity = searchParams.get('sortByPopularity') === 'true';
     const lowStock = searchParams.get('lowStock') === 'true';
+    const includeIngredients = searchParams.get('includeIngredients') === 'true';
 
     // Query filters
     const where = {};
@@ -42,7 +43,24 @@ export async function GET(request) {
     const productos = await prisma.producto.findMany({
       where,
       include: {
-        categoria: true
+        categoria: true,
+        ...(includeIngredients
+          ? {
+              comboComoCombo: {
+                include: {
+                  producto: {
+                    select: {
+                      id: true,
+                      nombre: true,
+                      stock: true,
+                      stockMinimo: true,
+                      activo: true,
+                    },
+                  },
+                },
+              },
+            }
+          : {}),
       },
       orderBy: { nombre: 'asc' }
     });

@@ -1,46 +1,137 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+/**
+ * Catálogo de permisos del sistema — claves alineadas con Sidebar y APIs.
+ * Seguro para importar en componentes cliente.
+ */
 
-export function forbiddenResponse(message = 'No tiene permisos para realizar esta accion') {
-  return NextResponse.json({ error: message }, { status: 403 });
+export const ALL_PERMISSION_KEYS = [
+  'inicio',
+  'pos',
+  'inventario',
+  'categorias',
+  'combos',
+  'descuentos',
+  'ventas',
+  'compras',
+  'proveedores',
+  'clientes',
+  'creditos',
+  'devoluciones',
+  'caja',
+  'reportes',
+  'auditoria',
+  'usuarios',
+  'configuracion',
+];
+
+export const PERMISSION_LABELS = {
+  inicio: 'Inicio',
+  pos: 'Punto de venta',
+  inventario: 'Productos',
+  categorias: 'Categorías',
+  combos: 'Combos',
+  descuentos: 'Descuentos',
+  ventas: 'Ventas',
+  compras: 'Compras',
+  proveedores: 'Proveedores',
+  clientes: 'Clientes',
+  creditos: 'Cuentas por cobrar',
+  devoluciones: 'Devoluciones',
+  caja: 'Caja',
+  reportes: 'Reportes',
+  auditoria: 'Auditoría',
+  usuarios: 'Usuarios',
+  configuracion: 'Configuración',
+};
+
+export const SENSITIVE_PERMISSIONS = new Set(['usuarios', 'auditoria', 'configuracion']);
+
+export const PERMISSION_GROUPS = [
+  {
+    id: 'operacion',
+    label: 'Operación diaria',
+    description: 'Ventas, caja y atención en mostrador.',
+    keys: ['inicio', 'pos', 'caja', 'ventas', 'devoluciones'],
+  },
+  {
+    id: 'inventario',
+    label: 'Inventario y catálogo',
+    description: 'Productos, categorías, combos y promociones.',
+    keys: ['inventario', 'categorias', 'combos', 'descuentos'],
+  },
+  {
+    id: 'compras',
+    label: 'Compras y proveedores',
+    description: 'Abastecimiento y relación con proveedores.',
+    keys: ['compras', 'proveedores'],
+  },
+  {
+    id: 'clientes',
+    label: 'Clientes y crédito',
+    description: 'Cartera y cuentas por cobrar.',
+    keys: ['clientes', 'creditos'],
+  },
+  {
+    id: 'analisis',
+    label: 'Análisis',
+    description: 'Reportes operativos del negocio.',
+    keys: ['reportes'],
+  },
+  {
+    id: 'administracion',
+    label: 'Administración',
+    description: 'Accesos sensibles del sistema.',
+    keys: ['usuarios', 'auditoria', 'configuracion'],
+  },
+];
+
+/** Permisos mínimos para considerar a alguien administrador del sistema. */
+export const ADMIN_PERMISSION_KEYS = ['usuarios', 'configuracion'];
+
+export function normalizePermissions(permisos = {}) {
+  const normalized = {};
+  for (const key of ALL_PERMISSION_KEYS) {
+    normalized[key] = Boolean(permisos[key]);
+  }
+  return normalized;
 }
 
-export function unauthorizedResponse(message = 'No autorizado') {
-  return NextResponse.json({ error: message }, { status: 401 });
+export function getPermissionLabel(key) {
+  return PERMISSION_LABELS[key] || key;
 }
 
-export async function requirePermission(permission) {
-  return requireAnyPermission([permission]);
+export function countActivePermissions(permisos = {}) {
+  return ALL_PERMISSION_KEYS.filter((k) => permisos[k]).length;
 }
 
-export async function requireAnyPermission(permissions) {
-  const session = await getServerSession(authOptions);
+export function getActivePermissionLabels(permisos = {}) {
+  return ALL_PERMISSION_KEYS.filter((k) => permisos[k]).map(getPermissionLabel);
+}
 
-  if (!session?.user?.id) {
-    return { response: unauthorizedResponse() };
-  }
+export function hasFullAdminAccess(permisos = {}) {
+  return ADMIN_PERMISSION_KEYS.every((k) => permisos[k]);
+}
 
-  const user = await prisma.usuario.findUnique({
-    where: { id: parseInt(session.user.id) },
-    include: { rol: true }
-  });
+export function isUserBlocked(user) {
+  return Boolean(user?.bloqueadoHasta && new Date(user.bloqueadoHasta) > new Date());
+}
 
-  if (!user || !user.activo) {
-    return { response: unauthorizedResponse('Usuario no autorizado o inactivo') };
-  }
+export function getUserSecurityState(user) {
+  if (!user) return 'unknown';
+  if (!user.activo) return 'inactive';
+  if (isUserBlocked(user)) return 'blocked';
+  if ((user.intentosFallidos || 0) >= 3) return 'risk';
+  if (!user.ultimoLogin) return 'never';
+  return 'active';
+}
 
-  const rolePermissions = user.rol?.permisos || {};
-  const allowed = permissions.some((perm) => rolePermissions[perm] === true);
-
-  if (!allowed) {
-    return { response: forbiddenResponse() };
-  }
-
-  return {
-    session,
-    user,
-    permissions: rolePermissions
+export function getUserSecurityLabel(state) {
+  const labels = {
+    active: 'Activo',
+    inactive: 'Inactivo',
+    blocked: 'Bloqueado',
+    risk: 'Riesgo',
+    never: 'Sin ingreso',
+    unknown: 'Desconocido',
   };
+  return labels[state] || state;
 }

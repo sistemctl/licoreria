@@ -5,10 +5,19 @@ import { authOptions } from '@/lib/auth';
 /**
  * Creates an audit log entry in the database.
  */
-export async function logAudit({ accion, tablaAfectada, registroId, datosAnteriores, datosNuevos }) {
+export async function logAudit({ accion, tablaAfectada, registroId, datosAnteriores, datosNuevos, usuarioId: usuarioIdOverride }) {
   try {
     const session = await getServerSession(authOptions);
-    const usuarioId = session?.user?.id ? parseInt(session.user.id) : 1; // Default to admin (id:1) if no session (e.g., during seed or public routes if any)
+    const usuarioId = usuarioIdOverride
+      ? parseInt(usuarioIdOverride)
+      : session?.user?.id
+        ? parseInt(session.user.id)
+        : null;
+
+    if (!usuarioId) {
+      console.warn('Auditoría omitida (sin sesión):', accion, tablaAfectada);
+      return;
+    }
 
     await prisma.auditoria.create({
       data: {

@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Header from '@/components/Header';
+import { DashboardModule, ModulePanel } from '@/components/layout';
 import Table from '@/components/Table';
 import Modal from '@/components/Modal';
 import { formatCurrency, formatDate, formatDateShort } from '@/lib/utils';
 import { Plus, Check, Eye } from 'lucide-react';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
 export default function CuentasPorCobrarPage() {
+  const { abonoMethods, labelFor } = usePaymentMethods();
   const [cuentas, setCuentas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchVal, setSearchVal] = useState('');
@@ -41,7 +43,7 @@ export default function CuentasPorCobrarPage() {
   const openAbonoModal = (cuenta) => {
     setSelectedCuenta(cuenta);
     setMontoAbono(parseFloat(cuenta.saldoPendiente).toFixed(2));
-    setMetodoPago('efectivo');
+    setMetodoPago(abonoMethods[0]?.id || 'efectivo');
     setErrorMsg('');
     setIsAbonoOpen(true);
   };
@@ -90,14 +92,9 @@ export default function CuentasPorCobrarPage() {
   const headers = ['ID', 'Cliente', 'Factura', 'Fecha Límite', 'Monto Total', 'Saldo Pendiente', 'Estado', 'Acciones'];
 
   return (
-    <div>
-      <Header title="Cuentas por Cobrar e Historial de Abonos" />
-
-      <div className="glass-panel" style={{ marginTop: '20px' }}>
-        {loading ? (
-          <p>Cargando cuentas...</p>
-        ) : (
-          <Table
+    <DashboardModule title="Cuentas por cobrar">
+      <ModulePanel loading={loading} loadingMessage="Cargando cuentas...">
+        <Table
             headers={headers}
             data={filteredCuentas}
             searchVal={searchVal}
@@ -141,8 +138,7 @@ export default function CuentasPorCobrarPage() {
               </tr>
             )}
           />
-        )}
-      </div>
+      </ModulePanel>
 
       {/* Modal Registrar Abono */}
       <Modal isOpen={isAbonoOpen} onClose={() => setIsAbonoOpen(false)} title="Registrar Abono / Pago">
@@ -176,9 +172,11 @@ export default function CuentasPorCobrarPage() {
                 onChange={(e) => setMetodoPago(e.target.value)} 
                 className="input-field"
               >
-                <option value="efectivo">Efectivo</option>
-                <option value="tarjeta">Tarjeta (Débito/Crédito)</option>
-                <option value="transferencia">Transferencia Bancaria</option>
+                {abonoMethods.map((method) => (
+                  <option key={method.id} value={method.id}>
+                    {method.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -223,7 +221,7 @@ export default function CuentasPorCobrarPage() {
                       <tr key={abono.id}>
                         <td>{formatDate(abono.fecha)}</td>
                         <td>{abono.usuario?.nombre}</td>
-                        <td><span className="badge badge-success">{abono.metodoPago.toUpperCase()}</span></td>
+                        <td><span className="badge badge-success">{labelFor(abono.metodoPago)}</span></td>
                         <td><strong>{formatCurrency(abono.monto)}</strong></td>
                       </tr>
                     ))
@@ -242,68 +240,6 @@ export default function CuentasPorCobrarPage() {
           </div>
         )}
       </Modal>
-
-      <style jsx>{`
-        .table-row-actions {
-          display: flex;
-          gap: 6px;
-        }
-
-        .text-danger { color: var(--error-red); }
-        .text-success { color: var(--success-green); }
-        .font-bold { font-weight: 600; }
-
-        .account-details-box {
-          background: rgba(0, 0, 0, 0.2);
-          border: 1px dashed var(--panel-border);
-          border-radius: 8px;
-          padding: 12px;
-          font-size: 14px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .account-summary-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 16px;
-          font-size: 13px;
-        }
-
-        .modal-details-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .form-modal-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .form-buttons {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-        }
-
-        .error-banner {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid var(--error-red);
-          color: var(--error-red);
-          padding: 10px;
-          border-radius: 6px;
-          font-size: 13px;
-        }
-      `}</style>
-    </div>
+    </DashboardModule>
   );
 }

@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getPaymentMethodsFromDb, computeCajaCashFromVenta } from '@/lib/paymentMethods';
+import { requirePermission } from '@/lib/permissions.server';
 
 export async function GET(request) {
   try {
+    const auth = await requirePermission('devoluciones');
+    if (auth.response) return auth.response;
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -41,10 +43,9 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const auth = await requirePermission('devoluciones');
+    if (auth.response) return auth.response;
+    const session = auth.session;
 
     const body = await request.json();
     const {
@@ -156,11 +157,31 @@ export async function POST(request) {
         }
       }
 
-      return dev;
+      return { dev, totalReembolsado };
     });
 
+    const paymentMethods = await getPaymentMethodsFromDb(prisma);
+    const ventaRef = await prisma.venta.findUnique({ where: { id: parseInt(ventaId) } });
+    if (ventaRef?.cajaTurnoId) {
+      const turno = await prisma.cajaTurno.findUnique({ where: { id: ventaRef.cajaTurnoId } });
+      if (turno?.estado === 'abierta') {
+        const cashVenta = computeCajaCashFromVenta(ventaRef, paymentMethods);
+        const ratio = parseFloat(ventaRef.total) > 0 ? resultado.totalReembolsado / parseFloat(ventaRef.total) : 0;
+        const cashRefund = cashVenta * ratio;
+        if (cashRefund > 0) {
+          await prisma.cajaTurno.update({
+            where: { id: turno.id },
+            data: {
+              retiros: parseFloat(turno.retiros) + cashRefund,
+              observaciones: `${turno.observaciones || ''}\n[DEVOLUCIÓN VENTA #${ventaRef.numFactura}: -$${cashRefund.toFixed(2)}]`,
+            },
+          });
+        }
+      }
+    }
+
     const devCompleta = await prisma.devolucion.findUnique({
-      where: { id: resultado.id },
+      where: { id: resultado.dev.id },
       include: {
         detalles: {
           include: { producto: true }

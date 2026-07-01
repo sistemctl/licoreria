@@ -1,37 +1,40 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import Header from '@/components/Header';
+import { DashboardModule, ModulePanel } from '@/components/layout';
 import Table from '@/components/Table';
 import Modal from '@/components/Modal';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { PlusCircle, MinusCircle, CheckCircle, AlertTriangle } from 'lucide-react';
+import { PlusCircle, MinusCircle, AlertTriangle } from 'lucide-react';
+
+const HISTORY_FILTERS = [
+  { id: 'all', label: 'Todos' },
+  { id: 'abierta', label: 'Abiertos' },
+  { id: 'cerrada', label: 'Cerrados' },
+];
 
 export default function CajaPage() {
   const { data: session, status } = useSession();
   const [turnos, setTurnos] = useState([]);
   const [cajaAbierta, setCajaAbierta] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [historyFilter, setHistoryFilter] = useState('all');
 
-  // Modales
   const [isAperturaOpen, setIsAperturaOpen] = useState(false);
   const [isRetiroOpen, setIsRetiroOpen] = useState(false);
   const [isCierreOpen, setIsCierreOpen] = useState(false);
 
-  // Campos
   const [montoApertura, setMontoApertura] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [montoRetiro, setMontoRetiro] = useState('');
   const [motivoRetiro, setMotivoRetiro] = useState('');
   const [montoCierreReal, setMontoCierreReal] = useState('');
   const [observacionesCierre, setObservacionesCierre] = useState('');
-
   const [errorMsg, setErrorMsg] = useState('');
 
   async function loadCajaData() {
     try {
-      // 1. Verificar si hay caja abierta
       const openRes = await fetch('/api/caja?checkOpen=true');
       const openJson = await openRes.json();
       if (openJson && !openJson.error) {
@@ -40,7 +43,6 @@ export default function CajaPage() {
         setCajaAbierta(null);
       }
 
-      // 2. Cargar historial
       const listRes = await fetch('/api/caja');
       const listJson = await listRes.json();
       setTurnos(listJson);
@@ -57,38 +59,50 @@ export default function CajaPage() {
     }
   }, [status, session]);
 
+  const filteredTurnos = useMemo(() => {
+    if (historyFilter === 'all') return turnos;
+    return turnos.filter((t) => t.estado === historyFilter);
+  }, [turnos, historyFilter]);
+
+  const historyStats = useMemo(() => {
+    const cerrados = turnos.filter((t) => t.estado === 'cerrada');
+    const conDiferencia = cerrados.filter(
+      (t) => t.diferencia !== null && parseFloat(t.diferencia) !== 0
+    );
+    return { total: turnos.length, abiertos: turnos.filter((t) => t.estado === 'abierta').length, conDiferencia: conDiferencia.length };
+  }, [turnos]);
+
   if (status === 'loading') {
     return (
-      <div>
-        <Header title="Control de Caja y Turnos" />
-        <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
+      <DashboardModule title="Caja">
+        <div className="glass-panel state-panel--centered">
+          <div className="spinner" aria-hidden="true" />
           <p>Cargando información de sesión...</p>
         </div>
-      </div>
+      </DashboardModule>
     );
   }
 
   const permisos = session?.user?.rol?.permisos || {};
   if (!permisos.caja) {
     return (
-      <div>
-        <Header title="Acceso Denegado" />
-        <div className="glass-panel" style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', textAlign: 'center' }}>
+      <DashboardModule title="Acceso denegado">
+        <div className="glass-panel state-panel--denied">
           <AlertTriangle size={48} className="text-warning" />
-          <h2 style={{ color: 'var(--text-primary)', fontSize: '20px' }}>No tienes permiso para acceder a la Caja</h2>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', fontSize: '14px', lineHeight: '1.5' }}>
-            Esta sección de administración de Caja y Turnos está restringida. Contacta a un administrador si necesitas permisos.
-          </p>
+          <h2>No tienes permiso para acceder a la caja</h2>
+          <p>Esta sección está restringida. Contacta a un administrador si necesitas permisos.</p>
         </div>
-      </div>
+      </DashboardModule>
     );
   }
+
+  const resetError = () => setErrorMsg('');
 
   const handleAbrirCaja = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     if (!montoApertura) {
-      setErrorMsg('Monto de apertura es obligatorio.');
+      setErrorMsg('Indica el monto inicial en caja.');
       return;
     }
 
@@ -96,7 +110,7 @@ export default function CajaPage() {
       const res = await fetch('/api/caja', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ montoApertura, observaciones })
+        body: JSON.stringify({ montoApertura, observaciones }),
       });
       const json = await res.json();
       if (json.error) {
@@ -108,7 +122,7 @@ export default function CajaPage() {
         loadCajaData();
       }
     } catch (e) {
-      setErrorMsg('Error de red al abrir caja.');
+      setErrorMsg('Error de red al abrir el turno.');
     }
   };
 
@@ -124,7 +138,7 @@ export default function CajaPage() {
       const res = await fetch(`/api/caja?id=${cajaAbierta.id}&action=withdraw`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ montoRetiro, motivo: motivoRetiro })
+        body: JSON.stringify({ montoRetiro, motivo: motivoRetiro }),
       });
       const json = await res.json();
       if (json.error) {
@@ -136,7 +150,7 @@ export default function CajaPage() {
         loadCajaData();
       }
     } catch (e) {
-      setErrorMsg('Error de red al procesar retiro.');
+      setErrorMsg('Error de red al registrar el retiro.');
     }
   };
 
@@ -144,7 +158,7 @@ export default function CajaPage() {
     e.preventDefault();
     setErrorMsg('');
     if (!montoCierreReal) {
-      setErrorMsg('Monto de cierre real es obligatorio.');
+      setErrorMsg('Indica cuánto efectivo hay en caja al cerrar.');
       return;
     }
 
@@ -152,7 +166,7 @@ export default function CajaPage() {
       const res = await fetch(`/api/caja?id=${cajaAbierta.id}&action=close`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ montoCierreReal, observacionesCierre })
+        body: JSON.stringify({ montoCierreReal, observacionesCierre }),
       });
       const json = await res.json();
       if (json.error) {
@@ -164,260 +178,280 @@ export default function CajaPage() {
         loadCajaData();
       }
     } catch (e) {
-      setErrorMsg('Error de red al cerrar la caja.');
+      setErrorMsg('Error de red al cerrar el turno.');
     }
   };
 
-  const headers = ['ID', 'Cajero', 'Apertura', 'Cierre', 'M. Apertura', 'M. Esperado', 'M. Real', 'Dif.', 'Retiros', 'Estado'];
+  const headers = ['Cajero', 'Apertura', 'Cierre', 'Apertura $', 'Esperado', 'Real', 'Diferencia', 'Retiros', 'Estado'];
 
   return (
-    <div>
-      <Header title="Control de Caja y Turnos" />
+    <DashboardModule title="Caja" className="dashboard-page--stack">
+      <div className="caja-page">
+        <p className="caja-page__hint">
+          <strong>Turno de caja</strong> — abre antes de vender en POS. Al cerrar, cuenta el efectivo
+          real y el sistema calcula la diferencia contra lo esperado.
+        </p>
 
-      {/* Panel de Estado Actual */}
-      <div className="glass-panel state-panel">
-        {cajaAbierta ? (
-          <div className="caja-state open-state animate-fade-in">
-            <div className="state-info">
-              <CheckCircle size={32} className="text-success" />
-              <div>
-                <h3>Turno Abierto</h3>
-                <p>Abierto el: {formatDate(cajaAbierta.fechaApertura)}</p>
-                <p>Monto inicial: <strong>{formatCurrency(cajaAbierta.montoApertura)}</strong></p>
-                <p>Retiros acumulados: <strong className="text-danger">{formatCurrency(cajaAbierta.retiros)}</strong></p>
+        <section
+          className={`caja-turno animate-fade-in${cajaAbierta ? ' is-open' : ' is-closed'}`}
+          aria-label="Estado del turno actual"
+        >
+          {cajaAbierta ? (
+            <>
+              <div className="caja-turno__top">
+                <div className="caja-turno__status">
+                  <p className="caja-turno__eyebrow">Turno activo</p>
+                  <h2 className="caja-turno__title">Caja abierta</h2>
+                  <p className="caja-turno__meta">
+                    Desde {formatDate(cajaAbierta.fechaApertura)}
+                    {session?.user?.name ? ` · ${session.user.name}` : ''}
+                  </p>
+                </div>
+                <div className="caja-turno__actions">
+                  <button
+                    type="button"
+                    onClick={() => { resetError(); setIsRetiroOpen(true); }}
+                    className="btn btn-secondary"
+                  >
+                    <MinusCircle size={16} />
+                    <span>Registrar retiro</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { resetError(); setIsCierreOpen(true); }}
+                    className="btn btn-danger"
+                  >
+                    <span>Cerrar turno</span>
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="state-actions">
-              <button onClick={() => { setErrorMsg(''); setIsRetiroOpen(true); }} className="btn btn-secondary">
-                <MinusCircle size={16} />
-                <span>Registrar Retiro</span>
-              </button>
-              <button onClick={() => { setErrorMsg(''); setIsCierreOpen(true); }} className="btn btn-danger">
-                <span>Cerrar Turno de Caja</span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="caja-state closed-state animate-fade-in">
-            <div className="state-info">
-              <AlertTriangle size={32} className="text-warning" />
-              <div>
-                <h3>Turno Cerrado</h3>
-                <p>No hay un turno de caja abierto en este momento. Debes iniciar uno para registrar ventas.</p>
-              </div>
-            </div>
-            <div className="state-actions">
-              <button onClick={() => { setErrorMsg(''); setIsAperturaOpen(true); }} className="btn btn-success">
-                <PlusCircle size={16} />
-                <span>Abrir Turno de Caja</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Historial de Turnos */}
-      <div className="glass-panel" style={{ marginTop: '24px' }}>
-        <h4>Historial de Cajas</h4>
-        <div style={{ marginTop: '16px' }}>
-          {loading ? (
-            <p>Cargando turnos...</p>
+              <div className="caja-turno__metrics">
+                <div className="caja-metric caja-metric--primary">
+                  <span className="caja-metric__value">{formatCurrency(cajaAbierta.montoApertura)}</span>
+                  <span className="caja-metric__label">Monto inicial</span>
+                </div>
+                <div className="caja-metric">
+                  <span className="caja-metric__value is-negative">
+                    {formatCurrency(cajaAbierta.retiros)}
+                  </span>
+                  <span className="caja-metric__label">Retiros</span>
+                </div>
+                <div className="caja-metric">
+                  <span className="caja-metric__value">#{cajaAbierta.id}</span>
+                  <span className="caja-metric__label">Turno</span>
+                </div>
+              </div>
+            </>
           ) : (
-            <Table
-              headers={headers}
-              data={turnos}
-              renderRow={(turno) => (
-                <tr key={turno.id}>
-                  <td>{turno.id}</td>
-                  <td>{turno.usuario?.nombre}</td>
-                  <td>{formatDate(turno.fechaApertura)}</td>
-                  <td>{turno.fechaCierre ? formatDate(turno.fechaCierre) : '-'}</td>
-                  <td>{formatCurrency(turno.montoApertura)}</td>
-                  <td>{turno.montoCierreEsperado ? formatCurrency(turno.montoCierreEsperado) : '-'}</td>
-                  <td>{turno.montoCierreReal ? formatCurrency(turno.montoCierreReal) : '-'}</td>
-                  <td>
-                    {turno.diferencia !== null ? (
-                      <span className={parseFloat(turno.diferencia) >= 0 ? 'text-success' : 'text-danger'}>
-                        {formatCurrency(turno.diferencia)}
-                      </span>
-                    ) : '-'}
-                  </td>
-                  <td>{formatCurrency(turno.retiros)}</td>
-                  <td>
-                    <span className={`badge ${turno.estado === 'abierta' ? 'badge-success' : 'badge-danger'}`}>
-                      {turno.estado === 'abierta' ? 'Abierta' : 'Cerrada'}
-                    </span>
-                  </td>
-                </tr>
-              )}
-            />
+            <div className="caja-turno__cta">
+              <div className="caja-turno__status">
+                <p className="caja-turno__eyebrow">Sin turno activo</p>
+                <h2 className="caja-turno__title">Caja cerrada</h2>
+                <p className="caja-turno__cta-copy">
+                  Abre un turno con el efectivo inicial en caja para habilitar ventas en el punto de venta.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { resetError(); setIsAperturaOpen(true); }}
+                className="btn btn-success"
+              >
+                <PlusCircle size={16} />
+                <span>Abrir turno</span>
+              </button>
+            </div>
           )}
-        </div>
+        </section>
+
+        <ModulePanel loading={loading} loadingMessage="Cargando historial...">
+          <div className="caja-history">
+            <div className="caja-history__head">
+              <div>
+                <h3 className="caja-history__title">Historial de turnos</h3>
+                <p className="caja-turno__meta" style={{ marginTop: 4 }}>
+                  {historyStats.total} turnos
+                  {historyStats.conDiferencia > 0 && (
+                    <> · {historyStats.conDiferencia} con diferencia al cierre</>
+                  )}
+                </p>
+              </div>
+              <div className="caja-history__filters" role="group" aria-label="Filtrar historial">
+                {HISTORY_FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    className={`caja-filter-btn${historyFilter === filter.id ? ' is-active' : ''}`}
+                    onClick={() => setHistoryFilter(filter.id)}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="caja-history-table">
+              <Table
+                headers={headers}
+                data={filteredTurnos}
+                emptyTitle="Sin turnos"
+                emptyDescription="No hay turnos que coincidan con este filtro."
+                renderRow={(turno) => {
+                  const diff = turno.diferencia !== null ? parseFloat(turno.diferencia) : null;
+                  const isCurrent = cajaAbierta?.id === turno.id;
+                  const hasDiscrepancy = diff !== null && diff !== 0;
+
+                  return (
+                    <tr
+                      key={turno.id}
+                      className={`${isCurrent ? 'is-current' : ''}${hasDiscrepancy ? ' has-discrepancy' : ''}`}
+                    >
+                      <td className="col-cajero">{turno.usuario?.nombre || '—'}</td>
+                      <td className="col-date">{formatDate(turno.fechaApertura)}</td>
+                      <td className="col-date">
+                        {turno.fechaCierre ? formatDate(turno.fechaCierre) : '—'}
+                      </td>
+                      <td className="col-money">{formatCurrency(turno.montoApertura)}</td>
+                      <td className="col-money">
+                        {turno.montoCierreEsperado ? formatCurrency(turno.montoCierreEsperado) : '—'}
+                      </td>
+                      <td className="col-money">
+                        {turno.montoCierreReal ? formatCurrency(turno.montoCierreReal) : '—'}
+                      </td>
+                      <td className={`col-money col-diff${diff !== null && diff < 0 ? ' text-danger' : diff > 0 ? ' text-success' : ''}`}>
+                        {diff !== null ? formatCurrency(turno.diferencia) : '—'}
+                      </td>
+                      <td className="col-money">{formatCurrency(turno.retiros)}</td>
+                      <td>
+                        <span className={`badge ${turno.estado === 'abierta' ? 'badge-success' : 'badge-danger'}`}>
+                          {turno.estado === 'abierta' ? 'Abierto' : 'Cerrado'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                }}
+              />
+            </div>
+          </div>
+        </ModulePanel>
       </div>
 
-      {/* Modal Apertura */}
-      <Modal isOpen={isAperturaOpen} onClose={() => setIsAperturaOpen(false)} title="Abrir Caja / Turno">
-        <form onSubmit={handleAbrirCaja} className="form-modal-layout">
+      <Modal isOpen={isAperturaOpen} onClose={() => setIsAperturaOpen(false)} title="Abrir turno">
+        <form onSubmit={handleAbrirCaja} className="caja-form">
           {errorMsg && <div className="error-banner">{errorMsg}</div>}
+          <p className="caja-form__note">
+            Cuenta el efectivo que hay en caja al iniciar el día o el turno. Ese monto es la base del arqueo.
+          </p>
           <div className="form-group">
-            <label className="label-field">Monto Inicial en Caja ($)</label>
-            <input 
-              type="number" 
-              step="0.01" 
+            <label className="label-field" htmlFor="caja-apertura">Monto inicial en caja</label>
+            <input
+              id="caja-apertura"
+              type="number"
+              step="0.01"
               required
-              value={montoApertura} 
-              onChange={(e) => setMontoApertura(e.target.value)} 
-              className="input-field" 
-              placeholder="Ej. 100.00"
+              value={montoApertura}
+              onChange={(e) => setMontoApertura(e.target.value)}
+              className="input-field"
+              placeholder="Ej. 100000"
             />
           </div>
           <div className="form-group">
-            <label className="label-field">Observaciones de Apertura</label>
-            <textarea 
-              value={observaciones} 
-              onChange={(e) => setObservaciones(e.target.value)} 
-              className="input-field" 
+            <label className="label-field" htmlFor="caja-apertura-obs">Notas</label>
+            <textarea
+              id="caja-apertura-obs"
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              className="input-field"
               rows="2"
+              placeholder="Opcional"
             />
           </div>
-          <div className="form-buttons">
-            <button type="button" onClick={() => setIsAperturaOpen(false)} className="btn btn-secondary">Cancelar</button>
-            <button type="submit" className="btn btn-primary">Abrir Caja</button>
-          </div>
+          <footer className="caja-form__footer">
+            <button type="button" onClick={() => setIsAperturaOpen(false)} className="btn btn-secondary">
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary">Abrir turno</button>
+          </footer>
         </form>
       </Modal>
 
-      {/* Modal Retiro */}
-      <Modal isOpen={isRetiroOpen} onClose={() => setIsRetiroOpen(false)} title="Registrar Retiro de Efectivo">
-        <form onSubmit={handleRetiro} className="form-modal-layout">
+      <Modal isOpen={isRetiroOpen} onClose={() => setIsRetiroOpen(false)} title="Registrar retiro">
+        <form onSubmit={handleRetiro} className="caja-form">
           {errorMsg && <div className="error-banner">{errorMsg}</div>}
+          <p className="caja-form__note">
+            Registra cuando sacas efectivo de caja (depósito, pago a proveedor, etc.).
+          </p>
           <div className="form-group">
-            <label className="label-field">Monto del Retiro ($)</label>
-            <input 
-              type="number" 
-              step="0.01" 
+            <label className="label-field" htmlFor="caja-retiro-monto">Monto del retiro</label>
+            <input
+              id="caja-retiro-monto"
+              type="number"
+              step="0.01"
               required
-              value={montoRetiro} 
-              onChange={(e) => setMontoRetiro(e.target.value)} 
-              className="input-field" 
+              value={montoRetiro}
+              onChange={(e) => setMontoRetiro(e.target.value)}
+              className="input-field"
             />
           </div>
           <div className="form-group">
-            <label className="label-field">Motivo / Descripción</label>
-            <input 
-              type="text" 
+            <label className="label-field" htmlFor="caja-retiro-motivo">Motivo</label>
+            <input
+              id="caja-retiro-motivo"
+              type="text"
               required
-              value={motivoRetiro} 
-              onChange={(e) => setMotivoRetiro(e.target.value)} 
-              className="input-field" 
-              placeholder="Ej. Pago a proveedor, depósito bancario"
+              value={motivoRetiro}
+              onChange={(e) => setMotivoRetiro(e.target.value)}
+              className="input-field"
+              placeholder="Ej. Depósito bancario"
             />
           </div>
-          <div className="form-buttons">
-            <button type="button" onClick={() => setIsRetiroOpen(false)} className="btn btn-secondary">Cancelar</button>
-            <button type="submit" className="btn btn-danger">Confirmar Retiro</button>
-          </div>
+          <footer className="caja-form__footer">
+            <button type="button" onClick={() => setIsRetiroOpen(false)} className="btn btn-secondary">
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-danger">Confirmar retiro</button>
+          </footer>
         </form>
       </Modal>
 
-      {/* Modal Cierre */}
-      <Modal isOpen={isCierreOpen} onClose={() => setIsCierreOpen(false)} title="Cerrar Caja / Turno">
-        <form onSubmit={handleCierre} className="form-modal-layout">
+      <Modal isOpen={isCierreOpen} onClose={() => setIsCierreOpen(false)} title="Cerrar turno">
+        <form onSubmit={handleCierre} className="caja-form">
           {errorMsg && <div className="error-banner">{errorMsg}</div>}
+          <p className="caja-form__note">
+            Cuenta todo el efectivo en caja. El sistema compara este monto con lo esperado según ventas y retiros.
+          </p>
           <div className="form-group">
-            <label className="label-field">Monto en Caja Real al Cierre ($)</label>
-            <input 
-              type="number" 
-              step="0.01" 
+            <label className="label-field" htmlFor="caja-cierre-real">Efectivo real en caja</label>
+            <input
+              id="caja-cierre-real"
+              type="number"
+              step="0.01"
               required
-              value={montoCierreReal} 
-              onChange={(e) => setMontoCierreReal(e.target.value)} 
-              className="input-field" 
-              placeholder="Cuenta todo el efectivo disponible en caja"
+              value={montoCierreReal}
+              onChange={(e) => setMontoCierreReal(e.target.value)}
+              className="input-field"
+              placeholder="Total contado"
             />
           </div>
           <div className="form-group">
-            <label className="label-field">Observaciones de Cierre</label>
-            <textarea 
-              value={observacionesCierre} 
-              onChange={(e) => setObservacionesCierre(e.target.value)} 
-              className="input-field" 
+            <label className="label-field" htmlFor="caja-cierre-obs">Notas de cierre</label>
+            <textarea
+              id="caja-cierre-obs"
+              value={observacionesCierre}
+              onChange={(e) => setObservacionesCierre(e.target.value)}
+              className="input-field"
               rows="2"
+              placeholder="Opcional — explica diferencias si las hay"
             />
           </div>
-          <div className="form-buttons">
-            <button type="button" onClick={() => setIsCierreOpen(false)} className="btn btn-secondary">Cancelar</button>
-            <button type="submit" className="btn btn-danger">Realizar Arqueo y Cerrar</button>
-          </div>
+          <footer className="caja-form__footer">
+            <button type="button" onClick={() => setIsCierreOpen(false)} className="btn btn-secondary">
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-danger">Arquear y cerrar</button>
+          </footer>
         </form>
       </Modal>
-
-      <style jsx>{`
-        .state-panel {
-          border-color: rgba(212, 168, 83, 0.2);
-        }
-
-        .caja-state {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px;
-        }
-
-        .state-info {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .state-info h3 {
-          font-size: 18px;
-          margin-bottom: 4px;
-        }
-
-        .state-info p {
-          font-size: 13px;
-          color: var(--text-secondary);
-          margin-bottom: 2px;
-        }
-
-        .state-actions {
-          display: flex;
-          gap: 12px;
-        }
-
-        .text-success { color: var(--success-green); }
-        .text-danger { color: var(--error-red); }
-        .text-warning { color: var(--warning-orange); }
-
-        .form-modal-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .form-buttons {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          margin-top: 10px;
-        }
-
-        .error-banner {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid var(--error-red);
-          color: var(--error-red);
-          padding: 10px;
-          border-radius: 6px;
-          font-size: 13px;
-        }
-      `}</style>
-    </div>
+    </DashboardModule>
   );
 }

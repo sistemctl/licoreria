@@ -1,0 +1,27 @@
+.mermas-panel-intro {
+  margin: 0 0 var(--space-4);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+.mermas-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-muted, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--color-border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.panel-header-row__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}

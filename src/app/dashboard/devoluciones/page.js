@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Header from '@/components/Header';
+import { DashboardModule, ModulePanel, PanelToolbar } from '@/components/layout';
 import Table from '@/components/Table';
 import Modal from '@/components/Modal';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -163,30 +163,30 @@ export default function DevolucionesPage() {
   const headers = ['ID', 'Fecha', 'Factura de Venta', 'Cajero', 'Motivo', 'Total Reembolsado', 'Acciones'];
 
   return (
-    <div>
-      <Header title="Gestión de Devoluciones y Notas de Crédito" />
-      <div className="table-actions glass-panel">
-        <div className="table-search-bar">
-          <Search size={18} className="search-icon" />
-          <input 
-            type="text" 
-            placeholder="Buscar por factura, motivo..." 
-            value={searchVal} 
-            onChange={(e) => setSearchVal(e.target.value)}
-            className="input-field search-input"
-          />
-        </div>
-        <button onClick={openNewModal} className="btn btn-primary" disabled={ventas.length === 0}>
-          <Plus size={18} />
-          <span>Nueva Devolución</span>
-        </button>
-      </div>
-
-      <div className="glass-panel" style={{ marginTop: '20px' }}>
-        {loading ? (
-          <p>Cargando devoluciones...</p>
-        ) : (
-          <Table
+    <DashboardModule title="Devoluciones">
+      <ModulePanel loading={loading} loadingMessage="Cargando devoluciones...">
+        <PanelToolbar
+          split
+          filters={
+            <div className="table-search-bar">
+              <Search size={18} className="search-icon" />
+              <input
+                type="text"
+                placeholder="Buscar por factura, motivo..."
+                value={searchVal}
+                onChange={(e) => setSearchVal(e.target.value)}
+                className="input-field search-input"
+              />
+            </div>
+          }
+          actions={
+            <button onClick={openNewModal} className="btn btn-primary" disabled={ventas.length === 0}>
+              <Plus size={18} />
+              <span>Nueva devolución</span>
+            </button>
+          }
+        />
+        <Table
             headers={headers}
             data={filteredDevoluciones}
             renderRow={(dev) => (
@@ -205,8 +205,7 @@ export default function DevolucionesPage() {
               </tr>
             )}
           />
-        )}
-      </div>
+      </ModulePanel>
 
       {/* Modal Nueva Devolución */}
       <Modal isOpen={isNewOpen} onClose={() => setIsNewOpen(false)} title="Registrar Nueva Devolución">
@@ -339,109 +338,6 @@ export default function DevolucionesPage() {
           </div>
         )}
       </Modal>
-
-      <style jsx>{`
-        .table-actions {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px;
-          gap: 16px;
-        }
-
-        .table-search-bar {
-          position: relative;
-          display: flex;
-          align-items: center;
-          max-width: 400px;
-          width: 100%;
-        }
-
-        .search-icon {
-          position: absolute;
-          left: 14px;
-          color: var(--text-secondary);
-        }
-
-        .search-input {
-          padding-left: 44px;
-          width: 100%;
-        }
-
-        .table-row-actions {
-          display: flex;
-          gap: 6px;
-        }
-
-        .text-danger { color: var(--error-red); }
-
-        .form-modal-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-row {
-          display: flex;
-          gap: 16px;
-        }
-
-        .half {
-          flex: 1;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .ingredients-section {
-          background: rgba(0, 0, 0, 0.15);
-          border: 1px solid var(--panel-border);
-          border-radius: 8px;
-          padding: 12px;
-        }
-
-        .table-qty-input {
-          width: 80px;
-          text-align: center;
-          padding: 6px;
-        }
-
-        .table-select-input {
-          padding: 6px;
-        }
-
-        .form-buttons {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          margin-top: 10px;
-        }
-
-        .error-banner {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid var(--error-red);
-          color: var(--error-red);
-          padding: 10px;
-          border-radius: 6px;
-          font-size: 13px;
-        }
-
-        .account-summary-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 16px;
-          font-size: 13px;
-        }
-
-        .modal-details-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-      `}</style>
-    </div>
+    </DashboardModule>
   );
 }

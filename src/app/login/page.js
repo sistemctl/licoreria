@@ -1,5 +1,6 @@
 'use client';
 
+import '@/styles/modules/login.css';
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -47,31 +48,17 @@ export default function Login() {
         {/* Panel Izquierdo: Formulario de Acceso */}
         <div className="login-left-side">
           <div className="login-card glass-panel">
-            <div className="login-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '4px' }}>
+            <div className="login-header">
               {configs?.logo_url ? (
-                <div style={{
-                  width: '72px',
-                  height: '72px',
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  background: '#ffffff',
-                  border: '1.5px solid var(--accent-gold)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '12px',
-                  padding: '6px'
-                }}>
-                  <img 
-                    src={configs.logo_url} 
-                    alt={configs.nombre_negocio || 'Logo'} 
-                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+                <div className="login-logo-wrap">
+                  <img
+                    src={configs.logo_url}
+                    alt={configs.nombre_negocio || 'Logo'}
                   />
                 </div>
               ) : null}
               <h2>{configs?.nombre_negocio || 'Mi Licorería'}</h2>
-              <p>Ingresa a tu cuenta para gestionar el negocio</p>
+              <p>Inicia sesión para abrir turno y operar</p>
             </div>
 
             {error && (
@@ -83,7 +70,7 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="login-form">
               <div className="form-group">
-                <label className="label-field" style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '11px', textTransform: 'uppercase', marginBottom: '6px', fontWeight: '500', letterSpacing: '0.05em' }}>Nombre de Usuario</label>
+                <label className="label-field">Nombre de usuario</label>
                 <div className="input-with-icon">
                   <input
                     type="text"
@@ -98,7 +85,7 @@ export default function Login() {
               </div>
 
               <div className="form-group">
-                <label className="label-field" style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '11px', textTransform: 'uppercase', marginBottom: '6px', fontWeight: '500', letterSpacing: '0.05em' }}>Contraseña</label>
+                <label className="label-field">Contraseña</label>
                 <div className="input-with-icon">
                   <input
                     type="password"
@@ -172,283 +159,13 @@ export default function Login() {
           </div>
           
           <div className="right-side-text">
-            <h3>Gestión Inteligente</h3>
+            <h3>Tu bodega, en un solo lugar</h3>
             <p>
-              <strong className="text-gold">Sistema de licorería especializado y hecho a la medida</strong>. Optimiza el <strong className="text-gold">inventario</strong>, acelera tus <strong className="text-gold">transacciones</strong> y audita cada movimiento en <strong className="text-gold">tiempo real</strong> con una interfaz premium y fluida.
+              Inventario, caja y punto de venta conectados. Cada venta descuenta stock, cada turno queda registrado.
             </p>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .login-wrapper {
-          width: 100vw;
-          height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: radial-gradient(circle at 50% 50%, #f8fafc 0%, #e2e8f0 100%);
-          overflow: hidden;
-          padding: 20px;
-        }
-
-        .login-container {
-          display: flex;
-          width: 100%;
-          max-width: 940px;
-          height: 560px;
-          border-radius: 20px;
-          overflow: hidden;
-          background: #ffffff;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
-        }
-
-        .login-left-side {
-          flex: 0 0 50%;
-          width: 50%;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          padding: 48px;
-          background: #ffffff;
-        }
-
-        .login-card {
-          width: 100%;
-          max-width: 360px;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-          padding: 0 !important;
-        }
-
-        .login-header {
-          text-align: center;
-        }
-
-        .login-header h2 {
-          color: #1e293b;
-          font-size: 28px;
-          margin-bottom: 8px;
-          letter-spacing: 0.5px;
-          font-weight: 700;
-        }
-
-        .login-header p {
-          color: #64748b;
-          font-size: 14px;
-        }
-
-        .login-error {
-          background: rgba(239, 68, 68, 0.08);
-          border: 1px solid rgba(239, 68, 68, 0.2);
-          color: var(--error-red);
-          padding: 12px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-size: 13px;
-        }
-
-        .login-form {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .input-with-icon {
-          position: relative;
-          display: flex;
-          align-items: center;
-          width: 100%;
-        }
-
-        :global(.input-icon) {
-          position: absolute;
-          left: 16px;
-          color: #64748b;
-          opacity: 0.7;
-          z-index: 5;
-          pointer-events: none;
-          transition: all 0.3s ease;
-        }
-
-        .login-input-field {
-          width: 100%;
-          padding: 14px 16px 14px 44px;
-          background: #f8fafc;
-          border: 1px solid #cbd5e1;
-          border-radius: 10px;
-          color: #1e293b;
-          font-size: 14px;
-          outline: none;
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .login-input-field:focus {
-          border-color: var(--accent-gold);
-          background: #ffffff;
-          box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.15);
-        }
-
-        .login-input-field:focus + :global(.input-icon) {
-          color: var(--accent-gold);
-          opacity: 1;
-        }
-
-        .login-input-field::placeholder {
-          color: #94a3b8;
-        }
-
-        .login-btn {
-          margin-top: 12px;
-          height: 50px;
-          font-size: 15px;
-          font-weight: 600;
-          letter-spacing: 0.5px;
-          background: linear-gradient(135deg, #8a1717 0%, #a32222 100%);
-          border: none;
-          color: #ffffff;
-          border-radius: 10px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(138, 23, 23, 0.2);
-        }
-
-        .login-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(138, 23, 23, 0.3);
-          background: linear-gradient(135deg, #a32222 0%, #8a1717 100%);
-        }
-
-        .login-right-side {
-          flex: 0 0 50%;
-          width: 50%;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          padding: 48px;
-          background: #f1f5f9;
-          border-left: 1px solid rgba(0, 0, 0, 0.05);
-          position: relative;
-        }
-
-        .vector-art-wrapper {
-          width: 100%;
-          max-width: 260px;
-          margin-bottom: 24px;
-          display: flex;
-          justify-content: center;
-        }
-
-        .vector-svg {
-          width: 100%;
-          height: auto;
-        }
-
-        .right-side-text {
-          max-width: 360px;
-          text-align: center;
-        }
-
-        .right-side-text h3 {
-          color: var(--accent-gold);
-          font-size: 22px;
-          font-weight: 700;
-          margin-bottom: 10px;
-        }
-
-        .right-side-text p {
-          color: #475569;
-          font-size: 13px;
-          line-height: 1.6;
-        }
-
-        .text-gold {
-          color: #a67c26;
-          font-weight: 700;
-        }
-
-        /* Animaciones CSS */
-        :global(.vector-bottle) {
-          transform-origin: 190px 310px;
-          animation: swingBottle 6s ease-in-out infinite;
-        }
-
-        :global(.vector-glass) {
-          transform-origin: 245px 310px;
-          animation: swingGlass 6s ease-in-out infinite;
-          animation-delay: 0.5s;
-        }
-
-        :global(.bubble) {
-          fill: var(--accent-gold);
-          opacity: 0;
-          animation: floatBubble 4s ease-in infinite;
-        }
-
-        :global(.bubble-1) { animation-delay: 0s; transform: translateX(0); }
-        :global(.bubble-2) { animation-delay: 1.5s; transform: translateX(-10px); }
-        :global(.bubble-3) { animation-delay: 0.8s; transform: translateX(5px); }
-        :global(.bubble-4) { animation-delay: 2.2s; transform: translateX(-5px); }
-        :global(.bubble-5) { animation-delay: 3s; transform: translateX(10px); }
-
-        @keyframes swingBottle {
-          0%, 100% { transform: rotate(0deg) translateY(0); }
-          50% { transform: rotate(-2deg) translateY(-4px); }
-        }
-
-        @keyframes swingGlass {
-          0%, 100% { transform: rotate(0deg) translateY(0); }
-          50% { transform: rotate(3deg) translateY(-2px); }
-        }
-
-        @keyframes floatBubble {
-          0% {
-            transform: translateY(120px);
-            opacity: 0;
-          }
-          10% {
-            opacity: 0.4;
-          }
-          90% {
-            opacity: 0.4;
-          }
-          100% {
-            transform: translateY(-80px);
-            opacity: 0;
-          }
-        }
-
-        /* Responsividad */
-        @media (max-width: 868px) {
-          .login-container {
-            max-width: 440px;
-            height: auto;
-            min-height: 500px;
-          }
-          .login-left-side {
-            flex: 0 0 100%;
-            width: 100%;
-            padding: 32px;
-          }
-          .login-right-side {
-            display: none;
-          }
-        }
-      `}</style>
     </div>
   );
 }

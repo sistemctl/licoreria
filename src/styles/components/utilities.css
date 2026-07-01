@@ -1,0 +1,60 @@
+/* Utility */
+.text-danger { color: var(--color-danger); }
+.text-warning { color: var(--color-warning); }
+.text-success { color: var(--color-success); }
+.text-secondary { color: var(--color-muted); }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.font-bold { font-weight: 600; }
+.italic { font-style: italic; }
+
+.action-buttons-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.action-btn-compact {
+  padding: 6px !important;
+  font-size: var(--text-sm) !important;
+  border-radius: var(--radius-sm) !important;
+  height: 28px;
+  width: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coupon-stub {
+  border: 2px dashed var(--color-brand-border) !important;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-brand-soft) 0%, var(--color-surface-elevated) 100%);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+  transition: all 0.2s ease;
+}
+
+.paper-receipt {
+  font-family: var(--font-data);
+  background: var(--color-surface-elevated);
+  color: var(--color-ink);
+  border: 1px solid var(--color-brand-border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  max-width: 380px;
+  margin: 0 auto;
+  box-shadow: var(--shadow-sm);
+}
+
+.json-logs-container {
+  font-family: var(--font-data);
+  font-size: var(--text-sm);
+  background: #0f1419;
+  color: #5eead4;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #1e293b;
+}

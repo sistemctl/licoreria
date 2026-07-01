@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Header from '@/components/Header';
+import { DashboardModule, ModulePanel } from '@/components/layout';
+import { FilterBar } from '@/components/shared';
 import Table from '@/components/Table';
 import Modal from '@/components/Modal';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDateTimeCompact } from '@/lib/utils';
 import { Eye, Ban } from 'lucide-react';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
 export default function HistorialVentasPage() {
+  const { posMethods, labelFor } = usePaymentMethods();
   const [ventas, setVentas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchVal, setSearchVal] = useState('');
@@ -118,109 +121,79 @@ export default function HistorialVentasPage() {
   const headers = ['Factura #', 'Fecha/Hora', 'Cliente', 'Cajero', 'Método Pago', 'Total', 'Estado', 'Acciones'];
 
   return (
-    <div>
-      <Header title="Historial y Registro de Facturación" />
+    <DashboardModule title="Ventas">
+      <ModulePanel loading={loading} loadingMessage="Cargando ventas...">
+        <FilterBar
+          onClear={() => {
+            setFilterFechaInicio('');
+            setFilterFechaFin('');
+            setFilterMetodoPago('todos');
+            setFilterEstado('todos');
+            setFilterCajero('todos');
+            setSearchVal('');
+          }}
+        >
+          <div>
+            <label className="label-field">Fecha inicio</label>
+            <input
+              type="date"
+              value={filterFechaInicio}
+              onChange={(e) => setFilterFechaInicio(e.target.value)}
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-field">Fecha fin</label>
+            <input
+              type="date"
+              value={filterFechaFin}
+              onChange={(e) => setFilterFechaFin(e.target.value)}
+              className="input-field"
+            />
+          </div>
+          <div>
+            <label className="label-field">Método de pago</label>
+            <select
+              value={filterMetodoPago}
+              onChange={(e) => setFilterMetodoPago(e.target.value)}
+              className="input-field"
+            >
+              <option value="todos">Todos</option>
+              {posMethods.map((method) => (
+                <option key={method.id} value={method.id}>
+                  {method.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label-field">Estado</label>
+            <select
+              value={filterEstado}
+              onChange={(e) => setFilterEstado(e.target.value)}
+              className="input-field"
+            >
+              <option value="todos">Todos</option>
+              <option value="completada">Completada</option>
+              <option value="anulada">Anulada</option>
+            </select>
+          </div>
+          <div>
+            <label className="label-field">Cajero</label>
+            <select
+              value={filterCajero}
+              onChange={(e) => setFilterCajero(e.target.value)}
+              className="input-field"
+            >
+              <option value="todos">Todos</option>
+              {cajeros.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+        </FilterBar>
 
-      <div className="glass-panel" style={{ marginTop: '20px' }}>
-        {loading ? (
-          <p>Cargando ventas...</p>
-        ) : (
-          <>
-            {/* Filtros de Utilidad */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-              gap: '12px',
-              padding: '16px',
-              background: 'rgba(212, 168, 83, 0.05)',
-              borderRadius: '8px',
-              border: '1px solid rgba(212, 168, 83, 0.12)',
-              marginBottom: '16px',
-              alignItems: 'flex-end'
-            }}>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Fecha Inicio</label>
-                <input 
-                  type="date" 
-                  value={filterFechaInicio} 
-                  onChange={(e) => setFilterFechaInicio(e.target.value)}
-                  className="input-field" 
-                  style={{ padding: '8px', fontSize: '13px', height: '36px' }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Fecha Fin</label>
-                <input 
-                  type="date" 
-                  value={filterFechaFin} 
-                  onChange={(e) => setFilterFechaFin(e.target.value)}
-                  className="input-field" 
-                  style={{ padding: '8px', fontSize: '13px', height: '36px' }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Método de Pago</label>
-                <select 
-                  value={filterMetodoPago} 
-                  onChange={(e) => setFilterMetodoPago(e.target.value)}
-                  className="input-field"
-                  style={{ padding: '8px', fontSize: '13px', height: '36px', cursor: 'pointer' }}
-                >
-                  <option value="todos">Todos</option>
-                  <option value="efectivo">Efectivo</option>
-                  <option value="tarjeta">Tarjeta</option>
-                  <option value="transferencia">Transferencia</option>
-                  <option value="credito">Crédito</option>
-                  <option value="mixto">Mixto</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Estado</label>
-                <select 
-                  value={filterEstado} 
-                  onChange={(e) => setFilterEstado(e.target.value)}
-                  className="input-field"
-                  style={{ padding: '8px', fontSize: '13px', height: '36px', cursor: 'pointer' }}
-                >
-                  <option value="todos">Todos</option>
-                  <option value="completada">Completada</option>
-                  <option value="anulada">Anulada</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Cajero</label>
-                <select 
-                  value={filterCajero} 
-                  onChange={(e) => setFilterCajero(e.target.value)}
-                  className="input-field"
-                  style={{ padding: '8px', fontSize: '13px', height: '36px', cursor: 'pointer' }}
-                >
-                  <option value="todos">Todos</option>
-                  {cajeros.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    setFilterFechaInicio('');
-                    setFilterFechaFin('');
-                    setFilterMetodoPago('todos');
-                    setFilterEstado('todos');
-                    setFilterCajero('todos');
-                    setSearchVal('');
-                  }}
-                  className="btn btn-secondary"
-                  style={{ width: '100%', height: '36px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  Limpiar Filtros
-                </button>
-              </div>
-            </div>
-
-            <Table
+        <Table
               headers={headers}
               data={filteredVentas}
               searchVal={searchVal}
@@ -228,11 +201,11 @@ export default function HistorialVentasPage() {
               searchPlaceholder="Buscar por factura, cliente..."
               renderRow={(venta) => (
               <tr key={venta.id} className={venta.estado === 'anulada' ? 'low-stock-row' : ''}>
-                <td><strong>{venta.numFactura}</strong></td>
-                <td>{formatDate(venta.fecha)}</td>
+                <td className="col-code"><strong>{venta.numFactura}</strong></td>
+                <td className="col-datetime">{formatDateTimeCompact(venta.fecha)}</td>
                 <td>{venta.cliente?.nombre || 'Particular (General)'}</td>
                 <td>{venta.usuario?.nombre}</td>
-                <td><span className="badge badge-success">{venta.metodoPago.toUpperCase()}</span></td>
+                <td><span className="badge badge-success">{labelFor(venta.metodoPago)}</span></td>
                 <td><strong>{formatCurrency(venta.total)}</strong></td>
                 <td>
                   <span className={`badge ${venta.estado === 'completada' ? 'badge-success' : 'badge-danger'}`}>
@@ -252,9 +225,7 @@ export default function HistorialVentasPage() {
               </tr>
             )}
           />
-          </>
-        )}
-      </div>
+      </ModulePanel>
 
       {/* Modal Detalle Venta */}
       <Modal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} title="Detalle de Factura de Venta">
@@ -268,7 +239,7 @@ export default function HistorialVentasPage() {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <p>Cliente: {selectedVenta.cliente?.nombre || 'Particular'}</p>
-                <p>Método de Pago: <strong>{selectedVenta.metodoPago.toUpperCase()}</strong></p>
+                <p>Método de Pago: <strong>{labelFor(selectedVenta.metodoPago)}</strong></p>
                 <p>Estado: <strong className={selectedVenta.estado === 'anulada' ? 'text-danger' : 'text-success'}>
                   {selectedVenta.estado.toUpperCase()}
                 </strong></p>
@@ -327,68 +298,6 @@ export default function HistorialVentasPage() {
           </div>
         )}
       </Modal>
-
-      <style jsx>{`
-        .table-row-actions {
-          display: flex;
-          gap: 6px;
-        }
-
-        .low-stock-row td {
-          background: rgba(239, 68, 68, 0.02);
-          text-decoration: line-through;
-        }
-
-        .text-danger { color: var(--error-red); }
-        .text-success { color: var(--success-green); }
-
-        .account-summary-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 16px;
-          font-size: 13px;
-        }
-
-        .checkout-summary-block {
-          margin-top: 16px;
-          padding: 12px;
-          background: rgba(0, 0, 0, 0.2);
-          border-radius: 8px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .summary-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 13px;
-          color: var(--text-secondary);
-        }
-
-        .total-row {
-          font-size: 15px;
-          font-weight: 700;
-          color: var(--text-primary);
-          border-top: 1px dashed rgba(212, 168, 83, 0.2);
-          padding-top: 6px;
-          margin-top: 4px;
-        }
-
-        .text-gold { color: var(--accent-gold); }
-
-        .modal-details-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .form-buttons {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-        }
-      `}</style>
-    </div>
+    </DashboardModule>
   );
 }

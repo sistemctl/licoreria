@@ -1,22 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Header from '@/components/Header';
-import Table from '@/components/Table';
+import { useEffect, useMemo, useState } from 'react';
+import { DashboardModule, ModulePanel } from '@/components/layout';
 import Modal from '@/components/Modal';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Tags } from 'lucide-react';
+
+const STATUS_FILTERS = [
+  { id: 'all', label: 'Todas' },
+  { id: 'active', label: 'Activas' },
+  { id: 'inactive', label: 'Inactivas' },
+];
+
+function getCategoryInitial(nombre) {
+  const trimmed = (nombre || '').trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() : '?';
+}
 
 export default function CategoriasPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchVal, setSearchVal] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  // Modales y formularios
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalTitle, setModalTitle] = useState('Nueva Categoría');
+  const [modalTitle, setModalTitle] = useState('Nueva categoría');
   const [editingId, setEditingId] = useState(null);
-  
-  // Campos del form
+
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [activo, setActivo] = useState(true);
@@ -38,8 +47,30 @@ export default function CategoriasPage() {
     loadCategorias();
   }, []);
 
+  const stats = useMemo(() => {
+    const activas = data.filter((c) => c.activo).length;
+    const productos = data.reduce((acc, c) => acc + (c._count?.productos || 0), 0);
+    return { total: data.length, activas, productos };
+  }, [data]);
+
+  const filteredData = useMemo(() => {
+    return data.filter((c) => {
+      const q = searchVal.toLowerCase();
+      const matchesSearch =
+        c.nombre.toLowerCase().includes(q) ||
+        (c.descripcion && c.descripcion.toLowerCase().includes(q));
+
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && c.activo) ||
+        (statusFilter === 'inactive' && !c.activo);
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [data, searchVal, statusFilter]);
+
   const openNewModal = () => {
-    setModalTitle('Nueva Categoría');
+    setModalTitle('Nueva categoría');
     setEditingId(null);
     setNombre('');
     setDescripcion('');
@@ -49,7 +80,7 @@ export default function CategoriasPage() {
   };
 
   const openEditModal = (cat) => {
-    setModalTitle('Editar Categoría');
+    setModalTitle('Editar categoría');
     setEditingId(cat.id);
     setNombre(cat.nombre);
     setDescripcion(cat.descripcion || '');
@@ -62,12 +93,12 @@ export default function CategoriasPage() {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!nombre) {
+    if (!nombre.trim()) {
       setErrorMsg('El nombre es obligatorio.');
       return;
     }
 
-    const payload = { nombre, descripcion, activo };
+    const payload = { nombre: nombre.trim(), descripcion: descripcion.trim(), activo };
     const method = editingId ? 'PUT' : 'POST';
     const url = editingId ? `/api/categorias?id=${editingId}` : '/api/categorias';
 
@@ -75,7 +106,7 @@ export default function CategoriasPage() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       const resJson = await res.json();
 
@@ -86,17 +117,15 @@ export default function CategoriasPage() {
         loadCategorias();
       }
     } catch (err) {
-      setErrorMsg('Error de red al procesar la categoría.');
+      setErrorMsg('Error de red al guardar la categoría.');
     }
   };
 
   const handleDeactivate = async (id) => {
-    if (!confirm('¿Seguro que deseas desactivar esta categoría?')) return;
+    if (!confirm('¿Desactivar esta categoría? Los productos asignados no se eliminan.')) return;
 
     try {
-      const res = await fetch(`/api/categorias?id=${id}`, {
-        method: 'DELETE'
-      });
+      const res = await fetch(`/api/categorias?id=${id}`, { method: 'DELETE' });
       const resJson = await res.json();
       if (resJson.error) {
         alert(resJson.error);
@@ -108,163 +137,194 @@ export default function CategoriasPage() {
     }
   };
 
-  const filteredData = data.filter(c => 
-    c.nombre.toLowerCase().includes(searchVal.toLowerCase()) ||
-    (c.descripcion && c.descripcion.toLowerCase().includes(searchVal.toLowerCase()))
-  );
-
-  const headers = ['ID', 'Nombre', 'Descripción', 'Estado', 'Acciones'];
-
   return (
-    <div>
-      <Header title="Categorías de Inventario" />
+    <DashboardModule title="Categorías">
+      <ModulePanel loading={loading} loadingMessage="Cargando categorías...">
+        <div className="categorias-page">
+          <p className="categorias-page__hint">
+            <strong>Anaqueles del inventario</strong> — agrupa productos y preparados para
+            filtrarlos rápido en POS (Cervezas, Preparados, Micheladas, etc.).
+          </p>
 
-      <div className="table-actions glass-panel">
-        <button onClick={openNewModal} className="btn btn-primary">
-          <Plus size={18} />
-          <span>Nueva Categoría</span>
-        </button>
-      </div>
+          <div className="categorias-page__summary">
+            <div className="categorias-stats">
+              <div className="categorias-stat">
+                <span className="categorias-stat__value">{stats.total}</span>
+                <span className="categorias-stat__label">Categorías</span>
+              </div>
+              <span className="categorias-stat__divider" aria-hidden="true" />
+              <div className="categorias-stat">
+                <span className="categorias-stat__value">{stats.activas}</span>
+                <span className="categorias-stat__label">Activas</span>
+              </div>
+              <span className="categorias-stat__divider" aria-hidden="true" />
+              <div className="categorias-stat">
+                <span className="categorias-stat__value">{stats.productos}</span>
+                <span className="categorias-stat__label">Productos</span>
+              </div>
+            </div>
 
-      <div className="glass-panel" style={{ marginTop: '20px' }}>
-        {loading ? (
-          <p>Cargando categorías...</p>
-        ) : (
-          <Table 
-            headers={headers}
-            data={filteredData}
-            searchVal={searchVal}
-            onSearchChange={setSearchVal}
-            searchPlaceholder="Buscar categorías..."
-            renderRow={(cat) => (
-              <tr key={cat.id}>
-                <td>{cat.id}</td>
-                <td><strong>{cat.nombre}</strong></td>
-                <td>{cat.descripcion || '-'}</td>
-                <td>
-                  <span className={`badge ${cat.activo ? 'badge-success' : 'badge-danger'}`}>
-                    {cat.activo ? 'Activo' : 'Inactivo'}
-                  </span>
-                </td>
-                <td className="table-row-actions">
-                  <button onClick={() => openEditModal(cat)} className="btn btn-secondary btn-icon" title="Editar">
-                    <Edit2 size={14} />
-                  </button>
-                  {cat.activo && (
-                    <button onClick={() => handleDeactivate(cat.id)} className="btn btn-danger btn-icon" title="Desactivar">
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </td>
-              </tr>
+            <button type="button" onClick={openNewModal} className="btn btn-primary">
+              <Plus size={18} />
+              <span>Nueva categoría</span>
+            </button>
+          </div>
+
+          <div className="categorias-page__toolbar">
+            <div className="categorias-search">
+              <Search size={18} className="search-icon" aria-hidden="true" />
+              <input
+                type="text"
+                placeholder="Buscar categorías..."
+                value={searchVal}
+                onChange={(e) => setSearchVal(e.target.value)}
+                className="input-field search-input"
+                aria-label="Buscar categorías"
+              />
+            </div>
+
+            <div className="categorias-filters" role="group" aria-label="Filtrar por estado">
+              {STATUS_FILTERS.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  className={`categorias-filter-btn${statusFilter === filter.id ? ' is-active' : ''}`}
+                  onClick={() => setStatusFilter(filter.id)}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="categorias-grid">
+            {filteredData.length > 0 ? (
+              filteredData.map((cat) => {
+                const productCount = cat._count?.productos ?? 0;
+                const hasDesc = Boolean(cat.descripcion?.trim());
+
+                return (
+                  <article
+                    key={cat.id}
+                    className={`categoria-card${cat.activo ? '' : ' is-inactive'}`}
+                  >
+                    <div className="categoria-card__head">
+                      <span className="categoria-card__mark" aria-hidden="true">
+                        {getCategoryInitial(cat.nombre)}
+                      </span>
+                      <div className="categoria-card__title-block">
+                        <h3 className="categoria-card__name">{cat.nombre}</h3>
+                        <p className={`categoria-card__desc${hasDesc ? '' : ' is-empty'}`}>
+                          {hasDesc ? cat.descripcion : 'Sin descripción'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="categoria-card__meta">
+                      <span className="categoria-card__count">
+                        <strong>{productCount}</strong>{' '}
+                        {productCount === 1 ? 'producto' : 'productos'}
+                      </span>
+
+                      <div className="categoria-card__actions">
+                        <span
+                          className={`badge ${cat.activo ? 'badge-success' : 'badge-danger'}`}
+                        >
+                          {cat.activo ? 'Activa' : 'Inactiva'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(cat)}
+                          className="btn btn-secondary btn-icon"
+                          title="Editar categoría"
+                          aria-label={`Editar ${cat.nombre}`}
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        {cat.activo && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeactivate(cat.id)}
+                            className="btn btn-danger btn-icon"
+                            title="Desactivar categoría"
+                            aria-label={`Desactivar ${cat.nombre}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })
+            ) : (
+              <div className="categorias-empty">
+                <strong>No hay categorías que coincidan</strong>
+                Prueba otro término de búsqueda o crea una nueva categoría.
+              </div>
             )}
-          />
-        )}
-      </div>
+          </div>
+        </div>
+      </ModulePanel>
 
-      {/* Modal de formulario */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={modalTitle}>
-        <form onSubmit={handleSubmit} className="form-modal-layout">
+        <form onSubmit={handleSubmit} className="categoria-form">
           {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
           <div className="form-group">
-            <label className="label-field">Nombre de la Categoría</label>
-            <input 
-              type="text" 
-              value={nombre} 
-              onChange={(e) => setNombre(e.target.value)} 
-              className="input-field" 
-              placeholder="Ej. Rones, Whiskys"
+            <label className="label-field" htmlFor="cat-nombre">Nombre</label>
+            <input
+              id="cat-nombre"
+              type="text"
+              required
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              className="input-field"
+              placeholder="Ej. Preparados, Cervezas"
             />
           </div>
 
           <div className="form-group">
-            <label className="label-field">Descripción (Opcional)</label>
-            <textarea 
-              value={descripcion} 
-              onChange={(e) => setDescripcion(e.target.value)} 
-              className="input-field" 
+            <label className="label-field" htmlFor="cat-descripcion">Descripción</label>
+            <textarea
+              id="cat-descripcion"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              className="input-field"
               rows="3"
-              placeholder="Ej. Rones añejos y nacionales"
+              placeholder="Para qué sirve esta categoría en el inventario"
             />
           </div>
 
-          {editingId && (
-            <div className="form-group row-checkbox">
-              <input 
-                type="checkbox" 
-                id="cat-activo" 
-                checked={activo} 
-                onChange={(e) => setActivo(e.target.checked)} 
-              />
-              <label htmlFor="cat-activo">Categoría Activa</label>
-            </div>
-          )}
+          <footer className="categoria-form__footer">
+            {editingId ? (
+              <div className="categoria-form__status">
+                <input
+                  type="checkbox"
+                  id="cat-activo"
+                  checked={activo}
+                  onChange={(e) => setActivo(e.target.checked)}
+                />
+                <label htmlFor="cat-activo">Visible en inventario y POS</label>
+              </div>
+            ) : (
+              <div className="categoria-form__status">
+                <Tags size={16} aria-hidden="true" />
+                <span>Se creará activa para usar de inmediato</span>
+              </div>
+            )}
 
-          <div className="form-buttons">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Guardar
-            </button>
-          </div>
+            <div className="categoria-form__actions">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-primary">
+                Guardar categoría
+              </button>
+            </div>
+          </footer>
         </form>
       </Modal>
-
-      <style jsx>{`
-        .table-actions {
-          display: flex;
-          justify-content: flex-end;
-          padding: 16px;
-        }
-
-        .table-row-actions {
-          display: flex;
-          gap: 8px;
-        }
-
-        :global(.btn-icon) {
-          padding: 6px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .form-modal-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .row-checkbox {
-          flex-direction: row;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .form-buttons {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          margin-top: 10px;
-        }
-
-        .error-banner {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid var(--error-red);
-          color: var(--error-red);
-          padding: 10px;
-          border-radius: 6px;
-          font-size: 13px;
-        }
-      `}</style>
-    </div>
+    </DashboardModule>
   );
 }

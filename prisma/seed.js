@@ -158,6 +158,7 @@ async function main() {
     'Snacks',
     'Cigarrillos',
     'Hielo',
+    'Preparados',
     'Otros',
   ];
 
@@ -175,6 +176,144 @@ async function main() {
 
   console.log('Categorías creadas.');
 
+  // 3b. Productos base y micheladas (combos/preparados)
+  const catCervezas = await prisma.categoria.findUnique({ where: { nombre: 'Cervezas' } });
+  const catTequilas = await prisma.categoria.findUnique({ where: { nombre: 'Tequilas' } });
+  const catPreparados = await prisma.categoria.findUnique({ where: { nombre: 'Preparados' } });
+
+  async function upsertProductoBase({ codigoBarras, nombre, marca, categoriaId, precioCompra, precioVentaDetal, stock }) {
+    return prisma.producto.upsert({
+      where: { codigoBarras },
+      update: {
+        nombre,
+        marca,
+        categoriaId,
+        precioCompra,
+        precioVentaDetal,
+        stock,
+        esCombo: false,
+        activo: true,
+      },
+      create: {
+        codigoBarras,
+        nombre,
+        marca,
+        descripcion: `Producto base para preparados y venta directa`,
+        categoriaId,
+        precioCompra,
+        precioVentaDetal,
+        stock,
+        stockMinimo: 10,
+        esCombo: false,
+        activo: true,
+      },
+    });
+  }
+
+  async function upsertMicheladaCombo({ codigoBarras, nombre, descripcion, precioVentaDetal, ingredientes }) {
+    let totalPrecioCompra = 0;
+    for (const ing of ingredientes) {
+      totalPrecioCompra += parseFloat(ing.producto.precioCompra) * ing.cantidad;
+    }
+
+    const combo = await prisma.producto.upsert({
+      where: { codigoBarras },
+      update: {
+        nombre,
+        descripcion,
+        categoriaId: catPreparados.id,
+        precioCompra: totalPrecioCompra,
+        precioVentaDetal,
+        esCombo: true,
+        activo: true,
+      },
+      create: {
+        codigoBarras,
+        nombre,
+        descripcion,
+        categoriaId: catPreparados.id,
+        precioCompra: totalPrecioCompra,
+        precioVentaDetal,
+        stock: 0,
+        stockMinimo: 0,
+        esCombo: true,
+        activo: true,
+      },
+    });
+
+    await prisma.comboDetalle.deleteMany({ where: { comboId: combo.id } });
+    for (const ing of ingredientes) {
+      await prisma.comboDetalle.create({
+        data: {
+          comboId: combo.id,
+          productoId: ing.producto.id,
+          cantidad: ing.cantidad,
+        },
+      });
+    }
+
+    return combo;
+  }
+
+  const cervezaAguila = await upsertProductoBase({
+    codigoBarras: 'CERV-AGUILA',
+    nombre: 'Cerveza Aguila',
+    marca: 'Aguila',
+    categoriaId: catCervezas.id,
+    precioCompra: 2500,
+    precioVentaDetal: 4000,
+    stock: 120,
+  });
+
+  const cervezaPoker = await upsertProductoBase({
+    codigoBarras: 'CERV-POKER',
+    nombre: 'Cerveza Poker',
+    marca: 'Poker',
+    categoriaId: catCervezas.id,
+    precioCompra: 2500,
+    precioVentaDetal: 4000,
+    stock: 80,
+  });
+
+  const tequilaShot = await upsertProductoBase({
+    codigoBarras: 'TEQ-SHOT',
+    nombre: 'Tequila (shot preparado)',
+    marca: 'Nacional',
+    categoriaId: catTequilas.id,
+    precioCompra: 1500,
+    precioVentaDetal: 2500,
+    stock: 200,
+  });
+
+  await upsertMicheladaCombo({
+    codigoBarras: 'MIC-SENCILLA',
+    nombre: 'Michelada sencilla',
+    descripcion: 'Michelada preparada con cerveza Aguila',
+    precioVentaDetal: 6000,
+    ingredientes: [{ producto: cervezaAguila, cantidad: 1 }],
+  });
+
+  await upsertMicheladaCombo({
+    codigoBarras: 'MIC-ALCOHOL',
+    nombre: 'Michelada con alcohol',
+    descripcion: 'Michelada con cerveza Aguila y shot de tequila',
+    precioVentaDetal: 8000,
+    ingredientes: [
+      { producto: cervezaAguila, cantidad: 1 },
+      { producto: tequilaShot, cantidad: 1 },
+    ],
+  });
+
+  await upsertMicheladaCombo({
+    codigoBarras: 'MIC-POKER',
+    nombre: 'Michelada sencilla (Poker)',
+    descripcion: 'Michelada preparada con cerveza Poker',
+    precioVentaDetal: 6000,
+    ingredientes: [{ producto: cervezaPoker, cantidad: 1 }],
+  });
+
+  console.log('Productos base y micheladas (combos) creados.');
+
   // 4. Crear Configuraciones Iniciales
   const configs = [
     { clave: 'nombre_negocio', valor: 'Mi Licorería', descripcion: 'Nombre del establecimiento' },
@@ -188,12 +327,25 @@ async function main() {
     { clave: 'dias_alerta_vencimiento', valor: '15', descripcion: 'Días de antelación para alertas de vencimiento' },
     { clave: 'logo_url', valor: '', descripcion: 'URL del logo de la licorería' },
     { clave: 'color_tema', valor: '#a67c26', descripcion: 'Color hexadecimal del tema visual' },
+    {
+      clave: 'metodos_pago',
+      valor: JSON.stringify([
+        { id: 'efectivo', label: 'Efectivo', activo: true, afectaCaja: true, requiereCambio: true, esCredito: false, esMixto: false, permiteAbono: true, protegido: true, orden: 0 },
+        { id: 'tarjeta', label: 'Tarjeta (Débito/Crédito)', activo: true, afectaCaja: false, requiereCambio: false, esCredito: false, esMixto: false, permiteAbono: true, protegido: false, orden: 1 },
+        { id: 'transferencia', label: 'Transferencia bancaria', activo: true, afectaCaja: false, requiereCambio: false, esCredito: false, esMixto: false, permiteAbono: true, protegido: false, orden: 2 },
+        { id: 'nequi', label: 'Nequi', activo: true, afectaCaja: false, requiereCambio: false, esCredito: false, esMixto: false, permiteAbono: true, protegido: false, orden: 3 },
+        { id: 'daviplata', label: 'Daviplata', activo: true, afectaCaja: false, requiereCambio: false, esCredito: false, esMixto: false, permiteAbono: true, protegido: false, orden: 4 },
+        { id: 'credito', label: 'Crédito (a cuenta de cliente)', activo: true, afectaCaja: false, requiereCambio: false, esCredito: true, esMixto: false, permiteAbono: false, protegido: true, orden: 90 },
+        { id: 'mixto', label: 'Pago mixto', activo: true, afectaCaja: false, requiereCambio: false, esCredito: false, esMixto: true, permiteAbono: false, protegido: true, orden: 99 },
+      ]),
+      descripcion: 'Métodos de pago configurables para POS y abonos',
+    },
   ];
 
   for (const conf of configs) {
     await prisma.configuracion.upsert({
       where: { clave: conf.clave },
-      update: {},
+      update: conf.clave === 'metodos_pago' ? { valor: conf.valor } : {},
       create: {
         clave: conf.clave,
         valor: conf.valor,

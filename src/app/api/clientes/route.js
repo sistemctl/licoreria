@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
-import { requireAnyPermission, requirePermission } from '@/lib/permissions';
+import { requireAnyPermission, requirePermission } from '@/lib/permissions.server';
 
 export async function GET(request) {
   try {

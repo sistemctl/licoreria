@@ -115,12 +115,28 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.rol = token.rol;
+      if (token?.id) {
+        const user = await prisma.usuario.findUnique({
+          where: { id: parseInt(token.id) },
+          include: { rol: true },
+        });
+
+        if (!user || !user.activo) {
+          session.user = null;
+          return session;
+        }
+
+        session.user.id = String(user.id);
+        session.user.name = user.nombre;
+        session.user.email = user.username;
+        session.user.rol = {
+          id: user.rol.id,
+          nombre: user.rol.nombre,
+          permisos: user.rol.permisos,
+        };
       }
       return session;
-    }
+    },
   },
   pages: {
     signIn: '/login',

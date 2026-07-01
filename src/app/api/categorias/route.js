@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
-import { requireAnyPermission, requirePermission } from '@/lib/permissions';
+import { requireAnyPermission, requirePermission } from '@/lib/permissions.server';
 
 export async function GET(request) {
   try {
@@ -22,7 +22,12 @@ export async function GET(request) {
 
     const categorias = await prisma.categoria.findMany({
       where,
-      orderBy: { nombre: 'asc' }
+      orderBy: { nombre: 'asc' },
+      include: {
+        _count: {
+          select: { productos: true },
+        },
+      },
     });
 
     return NextResponse.json(categorias);

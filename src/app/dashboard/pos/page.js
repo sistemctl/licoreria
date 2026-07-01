@@ -1,11 +1,25 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import '@/styles/modules/pos.css';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import useBarcodeScanner from '@/components/BarcodeScanner';
 import { formatCurrency } from '@/lib/utils';
 import Modal from '@/components/Modal';
 import { useConfig } from '@/components/ConfigProvider';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { sumMontosPago, getMethodById } from '@/lib/paymentMethods';
+import {
+  getBestPromoForCart,
+  estimatePromoDiscount,
+  isPromoActive,
+} from '@/lib/discountEngine';
+import {
+  canIncreaseCartItem,
+  getComboAvailableToAdd,
+  getComboLimitingIngredient,
+  getComboMaxInCart,
+} from '@/lib/comboStock';
 import { 
   Search, 
   ShoppingCart, 
@@ -24,6 +38,7 @@ import {
 export default function POSPage() {
   const { data: session } = useSession();
   const { configs } = useConfig();
+  const { posMethods, mixtoMethods, labelFor } = usePaymentMethods();
   const [cajaAbierta, setCajaAbierta] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,21 +55,34 @@ export default function POSPage() {
   // Carrito
   const [cart, setCart] = useState([]);
   const [descuentoGlobal, setDescuentoGlobal] = useState(0);
+  const [promociones, setPromociones] = useState([]);
+  const [selectedPromoId, setSelectedPromoId] = useState('auto');
   const [metodoPago, setMetodoPago] = useState('efectivo');
 
   // Modal de Confirmación de Cobro
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [montoRecibido, setMontoRecibido] = useState('');
 
-  // Pago Mixto
-  const [montoEfectivo, setMontoEfectivo] = useState(0);
-  const [montoTarjeta, setMontoTarjeta] = useState(0);
-  const [montoTransferencia, setMontoTransferencia] = useState(0);
+  // Pago mixto — montos por método configurado
+  const [montosMixto, setMontosMixto] = useState({});
 
   // Estado del cobro
   const [cargandoCobro, setCargandoCobro] = useState(false);
   const [mensajeExito, setMensajeExito] = useState('');
   const [mensajeError, setMensajeError] = useState('');
+
+  const selectedMethod = getMethodById(metodoPago, posMethods) || posMethods[0];
+  const sumaMixta = sumMontosPago(montosMixto);
+  const productosById = useMemo(
+    () => Object.fromEntries(productos.map((producto) => [producto.id, producto])),
+    [productos]
+  );
+
+  useEffect(() => {
+    if (posMethods.length === 0) return;
+    const stillValid = posMethods.some((m) => m.id === metodoPago);
+    if (!stillValid) setMetodoPago(posMethods[0].id);
+  }, [posMethods, metodoPago]);
 
   // Cargar datos al iniciar
   useEffect(() => {
@@ -75,7 +103,7 @@ export default function POSPage() {
         setCategorias(catJson);
 
         // 3. Cargar productos ordenados por popularidad (más vendidos primero)
-        const prodRes = await fetch('/api/productos?activeOnly=true&sortByPopularity=true');
+        const prodRes = await fetch('/api/productos?activeOnly=true&sortByPopularity=true&includeIngredients=true');
         const prodJson = await prodRes.json();
         setProductos(prodJson);
 
@@ -83,6 +111,13 @@ export default function POSPage() {
         const cliRes = await fetch('/api/clientes');
         const cliJson = await cliRes.json();
         setClientes(cliJson);
+
+        // 5. Promociones vigentes
+        const promoRes = await fetch('/api/descuentos?activeOnly=true');
+        const promoJson = await promoRes.json();
+        setPromociones(
+          Array.isArray(promoJson) ? promoJson.filter((p) => isPromoActive(p)) : []
+        );
       } catch (err) {
         console.error('Error al cargar datos del POS:', err);
       } finally {
@@ -104,14 +139,27 @@ export default function POSPage() {
     }
   });
 
+  const showComboStockError = (producto, cartState = cart) => {
+    const limiting = getComboLimitingIngredient(producto, cartState, productosById);
+    const message = limiting
+      ? `Sin stock suficiente de "${limiting.nombre}" para preparar ${producto.nombre}`
+      : `No hay ingredientes disponibles para ${producto.nombre}`;
+    setMensajeError(message);
+    setTimeout(() => setMensajeError(''), 3500);
+  };
+
   const addToCart = (producto) => {
     setCart((prevCart) => {
       const existing = prevCart.find(item => item.productoId === producto.id);
       if (existing) {
-        // Si no es combo, validar stock
-        if (!producto.esCombo && existing.cantidad >= producto.stock) {
-          setMensajeError(`Stock máximo alcanzado para ${producto.nombre}`);
-          setTimeout(() => setMensajeError(''), 3000);
+        const nextQuantity = existing.cantidad + 1;
+        if (!canIncreaseCartItem(producto, prevCart, productosById, nextQuantity)) {
+          if (producto.esCombo) {
+            showComboStockError(producto, prevCart);
+          } else {
+            setMensajeError(`Stock máximo alcanzado para ${producto.nombre}`);
+            setTimeout(() => setMensajeError(''), 3000);
+          }
           return prevCart;
         }
         return prevCart.map(item =>
@@ -120,8 +168,12 @@ export default function POSPage() {
             : item
         );
       } else {
-        // Validar stock inicial
-        if (!producto.esCombo && producto.stock <= 0) {
+        if (producto.esCombo) {
+          if (getComboAvailableToAdd(producto, prevCart, productosById) <= 0) {
+            showComboStockError(producto, prevCart);
+            return prevCart;
+          }
+        } else if (producto.stock <= 0) {
           setMensajeError(`Producto ${producto.nombre} sin stock disponible`);
           setTimeout(() => setMensajeError(''), 3000);
           return prevCart;
@@ -151,11 +203,15 @@ export default function POSPage() {
         if (item.productoId === productoId) {
           const nuevaCantidad = item.cantidad + delta;
           if (nuevaCantidad <= 0) return null;
-          
-          // Validar stock si no es combo
-          if (!item.esCombo && delta > 0 && nuevaCantidad > item.stock) {
-            setMensajeError(`Stock máximo alcanzado para ${item.nombre}`);
-            setTimeout(() => setMensajeError(''), 3000);
+
+          const producto = productosById[productoId];
+          if (delta > 0 && !canIncreaseCartItem(producto, prevCart, productosById, nuevaCantidad)) {
+            if (producto?.esCombo) {
+              showComboStockError(producto, prevCart);
+            } else {
+              setMensajeError(`Stock máximo alcanzado para ${item.nombre}`);
+              setTimeout(() => setMensajeError(''), 3000);
+            }
             return item;
           }
           return { ...item, cantidad: nuevaCantidad };
@@ -196,8 +252,34 @@ export default function POSPage() {
 
   // Cálculos de Totales
   const subtotal = cart.reduce((acc, item) => acc + (item.precioUnitario * item.cantidad), 0);
-  const totalDescuentos = cart.reduce((acc, item) => acc + ((item.descuentoLinea || 0) * item.cantidad), 0) + parseFloat(descuentoGlobal || 0);
-  const total = Math.max(0, subtotal - totalDescuentos);
+  const descuentoLineas = cart.reduce(
+    (acc, item) => acc + ((item.descuentoLinea || 0) * item.cantidad),
+    0
+  );
+  const subtotalNeto = Math.max(0, subtotal - descuentoLineas);
+
+  const { promo: mejorPromo, discount: descuentoPromoAuto } = useMemo(
+    () => getBestPromoForCart(promociones, cart, productosById),
+    [promociones, cart, productosById]
+  );
+
+  const promoAplicada = useMemo(() => {
+    if (selectedPromoId === 'none') return null;
+    if (selectedPromoId === 'auto') return mejorPromo;
+    return promociones.find((p) => p.id === parseInt(selectedPromoId)) || null;
+  }, [selectedPromoId, mejorPromo, promociones]);
+
+  const descuentoPromo = useMemo(() => {
+    if (!promoAplicada) return 0;
+    return estimatePromoDiscount(promoAplicada, cart, productosById);
+  }, [promoAplicada, cart, productosById]);
+
+  const descuentoManual = Math.max(0, parseFloat(descuentoGlobal || 0));
+  const impuestoPct = parseFloat(configs?.impuesto_porcentaje || '0');
+  const baseImpuesto = Math.max(0, subtotalNeto - descuentoPromo - descuentoManual);
+  const impuesto = baseImpuesto * (impuestoPct / 100);
+  const totalDescuentos = descuentoLineas + descuentoPromo + descuentoManual;
+  const total = Math.max(0, baseImpuesto + impuesto);
 
   // Filtrar productos visibles
   const filteredProductos = productos.filter((p) => {
@@ -223,17 +305,27 @@ export default function POSPage() {
       return;
     }
 
-    if (metodoPago === 'credito' && !selectedClienteId) {
+    if (selectedMethod?.esCredito && !selectedClienteId) {
       setMensajeError('Debe seleccionar un cliente para compras a crédito.');
       return;
     }
 
-    if (metodoPago === 'mixto') {
-      const sumaMixta = parseFloat(montoEfectivo || 0) + parseFloat(montoTarjeta || 0) + parseFloat(montoTransferencia || 0);
+    if (selectedMethod?.esMixto) {
       if (Math.abs(sumaMixta - total) > 0.01) {
         setMensajeError(`Los montos especificados ($${sumaMixta.toFixed(2)}) no coinciden con el total ($${total.toFixed(2)})`);
         return;
       }
+    }
+
+    const comboSinStock = cart.find((item) => {
+      const producto = productosById[item.productoId];
+      return producto?.esCombo && item.cantidad > getComboMaxInCart(producto, cart, productosById);
+    });
+
+    if (comboSinStock) {
+      const producto = productosById[comboSinStock.productoId];
+      showComboStockError(producto);
+      return;
     }
 
     setMontoRecibido('');
@@ -253,13 +345,12 @@ export default function POSPage() {
       return;
     }
 
-    if (metodoPago === 'credito' && !selectedClienteId) {
+    if (selectedMethod?.esCredito && !selectedClienteId) {
       setMensajeError('Debe seleccionar un cliente para compras a crédito.');
       return;
     }
 
-    if (metodoPago === 'mixto') {
-      const sumaMixta = parseFloat(montoEfectivo || 0) + parseFloat(montoTarjeta || 0) + parseFloat(montoTransferencia || 0);
+    if (selectedMethod?.esMixto) {
       if (Math.abs(sumaMixta - total) > 0.01) {
         setMensajeError(`Los montos especificados ($${sumaMixta.toFixed(2)}) no coinciden con el total ($${total.toFixed(2)})`);
         return;
@@ -276,14 +367,10 @@ export default function POSPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clienteId: selectedClienteId || null,
-          subtotal,
-          descuentoTotal: totalDescuentos,
-          impuesto: 0,
-          total,
+          descuentoManual,
+          descuentoId: promoAplicada?.id || null,
           metodoPago,
-          montoEfectivo: metodoPago === 'efectivo' ? total : (metodoPago === 'mixto' ? parseFloat(montoEfectivo) : 0),
-          montoTarjeta: metodoPago === 'tarjeta' ? total : (metodoPago === 'mixto' ? parseFloat(montoTarjeta) : 0),
-          montoTransferencia: metodoPago === 'transferencia' ? total : (metodoPago === 'mixto' ? parseFloat(montoTransferencia) : 0),
+          montosPago: selectedMethod?.esMixto ? montosMixto : undefined,
           detalles: cart.map(item => ({
             productoId: item.productoId,
             cantidad: item.cantidad,
@@ -307,14 +394,13 @@ export default function POSPage() {
         // Limpiar carrito y restablecer
         setCart([]);
         setDescuentoGlobal(0);
+        setSelectedPromoId('auto');
         setSelectedClienteId('');
-        setMetodoPago('efectivo');
-        setMontoEfectivo(0);
-        setMontoTarjeta(0);
-        setMontoTransferencia(0);
+        setMetodoPago(posMethods[0]?.id || 'efectivo');
+        setMontosMixto({});
 
         // Recargar inventario actualizado
-        const prodRes = await fetch('/api/productos?activeOnly=true');
+        const prodRes = await fetch('/api/productos?activeOnly=true&sortByPopularity=true&includeIngredients=true');
         const prodJson = await prodRes.json();
         setProductos(prodJson);
       }
@@ -373,6 +459,19 @@ export default function POSPage() {
       doc.text(`Descuentos:`, 40, y, { align: 'right' });
       doc.text(`$${parseFloat(ventaObj.descuentoTotal).toFixed(2)}`, 75, y, { align: 'right' });
 
+      if (ventaObj.descuento?.nombre) {
+        y += 4;
+        doc.setFontSize(7);
+        doc.text(`Promo: ${ventaObj.descuento.nombre}`, 5, y);
+        doc.setFontSize(8);
+      }
+
+      if (parseFloat(ventaObj.impuesto || 0) > 0) {
+        y += 4;
+        doc.text(`Impuesto:`, 40, y, { align: 'right' });
+        doc.text(`$${parseFloat(ventaObj.impuesto).toFixed(2)}`, 75, y, { align: 'right' });
+      }
+
       y += 4;
       doc.setFont('Helvetica', 'bold');
       doc.text(`Total:`, 40, y, { align: 'right' });
@@ -380,7 +479,7 @@ export default function POSPage() {
       
       y += 5;
       doc.setFont('Helvetica', 'normal');
-      doc.text(`Metodo Pago: ${ventaObj.metodoPago.toUpperCase()}`, 5, y);
+      doc.text(`Metodo Pago: ${labelFor(ventaObj.metodoPago)}`, 5, y);
 
       y += 10;
       doc.text('¡Gracias por su compra!', 40, y, { align: 'center' });
@@ -448,12 +547,16 @@ export default function POSPage() {
           {filteredProductos.length > 0 ? (
             filteredProductos.map((p) => {
               const inCartItem = cart.find(item => item.productoId === p.id);
-              const availableQty = p.esCombo ? 'Combo' : p.stock - (inCartItem?.cantidad || 0);
+              const comboMax = p.esCombo ? getComboMaxInCart(p, cart, productosById) : null;
+              const availableQty = p.esCombo
+                ? comboMax - (inCartItem?.cantidad || 0)
+                : p.stock - (inCartItem?.cantidad || 0);
+              const comboSinStock = p.esCombo && comboMax <= 0;
 
               return (
                 <div 
                   key={p.id} 
-                  className={`product-card glass-panel ${p.stock <= p.stockMinimo && !p.esCombo ? 'low-stock-border' : ''}`}
+                  className={`product-card pos-product-card glass-panel ${(p.stock <= p.stockMinimo && !p.esCombo) || comboSinStock ? 'low-stock-border' : ''}`}
                   onClick={() => addToCart(p)}
                 >
                   <div className="product-image-placeholder">
@@ -469,7 +572,9 @@ export default function POSPage() {
                     <div className="product-price-row">
                       <span className="product-price">{formatCurrency(p.precioVentaDetal)}</span>
                       {p.esCombo ? (
-                        <span className="badge badge-success">Combo</span>
+                        <span className={`stock-indicator ${availableQty <= 3 ? 'text-danger' : 'text-secondary'}`}>
+                          Prep: {comboMax}
+                        </span>
                       ) : (
                         <span className={`stock-indicator ${availableQty <= 3 ? 'text-danger' : 'text-secondary'}`}>
                           Stock: {p.stock}
@@ -506,7 +611,7 @@ export default function POSPage() {
         <div className="cart-items-list">
           {cart.length > 0 ? (
             cart.map((item) => (
-              <div key={item.productoId} className="cart-item">
+              <div key={item.productoId} className="cart-item pos-cart-row">
                 <div className="cart-item-details">
                   <h4>{item.nombre}</h4>
                   <div className="cart-item-price-info">
@@ -571,7 +676,32 @@ export default function POSPage() {
 
 
           <div className="checkout-field">
-            <label className="label-field">Descuento Adicional ($)</label>
+            <label className="label-field">Promoción</label>
+            <select
+              value={selectedPromoId}
+              onChange={(e) => setSelectedPromoId(e.target.value)}
+              className="input-field select-field"
+            >
+              <option value="auto">
+                Automática{mejorPromo ? ` (${mejorPromo.nombre})` : ''}
+              </option>
+              <option value="none">Sin promoción</option>
+              {promociones.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+            {promoAplicada && descuentoPromo > 0 ? (
+              <p className="field-hint text-gold">
+                <Ticket size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />{' '}
+                {promoAplicada.nombre}: -{formatCurrency(descuentoPromo)}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="checkout-field">
+            <label className="label-field">Descuento manual ($)</label>
             <input 
               type="number" 
               value={descuentoGlobal}
@@ -592,6 +722,12 @@ export default function POSPage() {
             <span>Descuentos:</span>
             <span className="text-danger">-{formatCurrency(totalDescuentos)}</span>
           </div>
+          {impuesto > 0 ? (
+            <div className="summary-row">
+              <span>Impuesto ({impuestoPct}%):</span>
+              <span>{formatCurrency(impuesto)}</span>
+            </div>
+          ) : null}
           <div className="summary-row total-row">
             <span>Total a Cobrar:</span>
             <span className="text-gold">{formatCurrency(total)}</span>
@@ -601,7 +737,7 @@ export default function POSPage() {
         <button 
           onClick={openConfirmation}
           disabled={cart.length === 0 || cargandoCobro}
-          className="btn btn-primary w-full cobro-btn"
+          className="btn btn-primary w-full cobro-btn pos-checkout-btn"
         >
           <DollarSign size={20} />
           <span>REGISTRAR Y COBRAR</span>
@@ -664,66 +800,49 @@ export default function POSPage() {
                 onChange={(e) => {
                   setMetodoPago(e.target.value);
                   setMontoRecibido('');
+                  setMontosMixto({});
                 }}
                 className="input-field select-field"
                 style={{ padding: '8px 12px', fontSize: '13px' }}
               >
-                <option value="efectivo">Efectivo</option>
-                <option value="tarjeta">Tarjeta (Débito/Crédito)</option>
-                <option value="transferencia">Transferencia Bancaria</option>
-                <option value="credito">Crédito (A Cuenta de Cliente)</option>
-                <option value="mixto">Pago Mixto</option>
+                {posMethods.map((method) => (
+                  <option key={method.id} value={method.id}>
+                    {method.label}
+                  </option>
+                ))}
               </select>
             </div>
 
-            {/* Configuración Pago Mixto inside Modal */}
-            {metodoPago === 'mixto' && (
+            {selectedMethod?.esMixto && (
               <div className="mixto-inputs glass-panel" style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid var(--warning-orange)', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.03)', margin: '8px 0' }}>
-                <h5 style={{ fontSize: '11px', color: 'var(--warning-orange)', margin: '0 0 4px 0', fontWeight: 'bold' }}>Montos de Pago Mixto</h5>
-                <div className="mixto-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-                  <span>Efectivo ($)</span>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    value={montoEfectivo} 
-                    onChange={(e) => setMontoEfectivo(e.target.value)}
-                    className="input-field compacto"
-                    style={{ width: '100px', padding: '4px 8px', textAlign: 'right' }}
-                  />
-                </div>
-                <div className="mixto-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-                  <span>Tarjeta ($)</span>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    value={montoTarjeta} 
-                    onChange={(e) => setMontoTarjeta(e.target.value)}
-                    className="input-field compacto"
-                    style={{ width: '100px', padding: '4px 8px', textAlign: 'right' }}
-                  />
-                </div>
-                <div className="mixto-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-                  <span>Transferencia ($)</span>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    value={montoTransferencia} 
-                    onChange={(e) => setMontoTransferencia(e.target.value)}
-                    className="input-field compacto"
-                    style={{ width: '100px', padding: '4px 8px', textAlign: 'right' }}
-                  />
-                </div>
-                {/* Validación Suma Mixta */}
-                {Math.abs((parseFloat(montoEfectivo || 0) + parseFloat(montoTarjeta || 0) + parseFloat(montoTransferencia || 0)) - total) > 0.01 && (
+                <h5 style={{ fontSize: '11px', color: 'var(--warning-orange)', margin: '0 0 4px 0', fontWeight: 'bold' }}>Montos de pago mixto</h5>
+                {mixtoMethods.map((method) => (
+                  <div key={method.id} className="mixto-field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                    <span>{method.label} ($)</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={montosMixto[method.id] ?? ''}
+                      onChange={(e) =>
+                        setMontosMixto((prev) => ({
+                          ...prev,
+                          [method.id]: e.target.value,
+                        }))
+                      }
+                      className="input-field compacto"
+                      style={{ width: '100px', padding: '4px 8px', textAlign: 'right' }}
+                    />
+                  </div>
+                ))}
+                {Math.abs(sumaMixta - total) > 0.01 && (
                   <div style={{ color: 'var(--error-red)', fontSize: '11px', marginTop: '4px' }}>
-                    La suma de montos (${(parseFloat(montoEfectivo || 0) + parseFloat(montoTarjeta || 0) + parseFloat(montoTransferencia || 0)).toFixed(2)}) no coincide con el total (${total.toFixed(2)}).
+                    La suma de montos (${sumaMixta.toFixed(2)}) no coincide con el total (${total.toFixed(2)}).
                   </div>
                 )}
               </div>
             )}
 
-            {/* Validación Crédito sin Cliente */}
-            {metodoPago === 'credito' && !selectedClienteId && (
+            {selectedMethod?.esCredito && !selectedClienteId && (
               <div className="warning-box total-zero-box" style={{ margin: '8px 0', padding: '8px' }}>
                 <AlertTriangle size={16} className="text-danger" />
                 <span style={{ color: 'var(--error-red)', fontSize: '12px' }}>Debe seleccionar un cliente para compras a crédito.</span>
@@ -737,7 +856,7 @@ export default function POSPage() {
           </div>
 
           {/* Efectivo Recibido y Cambio */}
-          {metodoPago === 'efectivo' && (
+          {selectedMethod?.requiereCambio && (
             <div className="cash-calculation">
               <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label className="label-field" style={{ fontSize: '11px', textTransform: 'uppercase' }}>Monto Entregado por Cliente ($)</label>
@@ -780,10 +899,10 @@ export default function POSPage() {
               }} 
               className="btn btn-primary"
               disabled={
-                cargandoCobro || 
-                (metodoPago === 'credito' && !selectedClienteId) || 
-                (metodoPago === 'efectivo' && montoRecibido && parseFloat(montoRecibido) < total) ||
-                (metodoPago === 'mixto' && Math.abs((parseFloat(montoEfectivo || 0) + parseFloat(montoTarjeta || 0) + parseFloat(montoTransferencia || 0)) - total) > 0.01)
+                cargandoCobro ||
+                (selectedMethod?.esCredito && !selectedClienteId) ||
+                (selectedMethod?.requiereCambio && montoRecibido && parseFloat(montoRecibido) < total) ||
+                (selectedMethod?.esMixto && Math.abs(sumaMixta - total) > 0.01)
               }
             >
               {cargandoCobro ? 'Procesando Venta...' : 'Confirmar y Registrar Venta'}
@@ -791,610 +910,6 @@ export default function POSPage() {
           </div>
         </div>
       </Modal>
-
-      <style jsx>{`
-        .pos-container {
-          display: flex;
-          gap: 20px;
-          height: calc(100vh - 130px);
-          width: 100%;
-          overflow: hidden;
-        }
-
-        .pos-loading {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 70vh;
-          gap: 16px;
-        }
-
-        .spinner {
-          border: 4px solid rgba(212, 168, 83, 0.1);
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          border-left-color: var(--accent-gold);
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        .pos-left-panel {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          height: 100%;
-          min-width: 0;
-        }
-
-        .pos-search-header {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          padding: 16px;
-        }
-
-        .search-wrapper {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .search-icon {
-          position: absolute;
-          left: 14px;
-          color: var(--text-secondary);
-        }
-
-        .pos-search-input {
-          padding-left: 44px;
-        }
-
-        .categories-tabs {
-          display: flex;
-          gap: 8px;
-          overflow-x: auto;
-          padding-bottom: 4px;
-        }
-
-        .categories-tabs::-webkit-scrollbar {
-          height: 4px;
-        }
-
-        .tab-btn {
-          padding: 8px 16px;
-          border: 1px solid var(--panel-border);
-          border-radius: 20px;
-          background: #ffffff;
-          color: var(--text-secondary);
-          cursor: pointer;
-          font-size: 13px;
-          font-weight: 500;
-          white-space: nowrap;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .tab-btn:hover {
-          color: var(--text-primary);
-          border-color: var(--accent-gold);
-        }
-
-        .tab-btn:active {
-          transform: scale(0.94);
-        }
-
-        .tab-btn.active {
-          background: var(--accent-gold);
-          color: #fff;
-          border-color: var(--accent-gold);
-          font-weight: 600;
-        }
-
-        .pos-products-grid {
-          flex-grow: 1;
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-          gap: 16px;
-          overflow-y: auto;
-          padding-right: 4px;
-        }
-
-        .product-card {
-          padding: 12px;
-          cursor: pointer;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          height: 220px;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .product-card:hover {
-          transform: translateY(-2px);
-          border-color: var(--accent-gold);
-        }
-
-        .product-card:active {
-          transform: scale(0.96);
-        }
-
-        .low-stock-border {
-          border-color: rgba(239, 68, 68, 0.4);
-        }
-
-        .product-image-placeholder {
-          height: 100px;
-          background: rgba(0, 0, 0, 0.05);
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-        }
-
-        .product-image {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .product-card-details {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .product-brand {
-          font-size: 11px;
-          color: var(--text-secondary);
-          text-transform: uppercase;
-        }
-
-        .product-name {
-          font-size: 13px;
-          font-weight: 600;
-          line-height: 1.3;
-          height: 34px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-        }
-
-        .product-price-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 4px;
-        }
-
-        .product-price {
-          font-size: 14px;
-          font-weight: 700;
-          color: var(--accent-gold);
-        }
-
-        .stock-indicator {
-          font-size: 11px;
-        }
-
-        .text-danger { color: var(--error-red); }
-
-        .no-products {
-          grid-column: 1 / -1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 200px;
-          color: var(--text-secondary);
-          font-style: italic;
-        }
-
-        /* Sección Derecha */
-        .pos-right-panel {
-          width: 380px;
-          flex-shrink: 0;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          padding: 16px;
-        }
-
-        .cart-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          border-bottom: 1px solid rgba(212, 168, 83, 0.1);
-          padding-bottom: 8px;
-        }
-
-        .cart-header h3 {
-          font-size: 16px;
-          flex-grow: 1;
-        }
-
-        .text-gold { color: var(--accent-gold); }
-
-        .cart-items-list {
-          flex-grow: 1;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          padding-right: 4px;
-          min-height: 160px;
-        }
-
-        .cart-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px;
-          background: #ffffff;
-          border: 1px solid rgba(212, 168, 83, 0.15);
-          border-radius: 8px;
-        }
-
-        .cart-item-details {
-          flex-grow: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          max-width: 60%;
-        }
-
-        .cart-item-details h4 {
-          font-size: 13px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .cart-item-price-info {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .unit-price {
-          font-size: 11px;
-          color: var(--text-secondary);
-        }
-
-        .toggle-price-type-btn {
-          font-size: 9px;
-          padding: 2px 4px;
-          background: rgba(212, 168, 83, 0.1);
-          border: 1px solid var(--accent-gold);
-          color: var(--accent-gold);
-          border-radius: 4px;
-          cursor: pointer;
-        }
-
-        .cart-item-actions {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .quantity-controls {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: rgba(0, 0, 0, 0.04);
-          padding: 4px;
-          border-radius: 6px;
-          border: 1px solid var(--panel-border);
-        }
-
-        .qty-btn {
-          width: 20px;
-          height: 20px;
-          border-radius: 4px;
-          border: none;
-          background: rgba(0, 0, 0, 0.04);
-          color: var(--text-primary);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-        }
-
-        .qty-btn:hover {
-          background: var(--accent-gold);
-          color: #fff;
-        }
-
-        .qty-value {
-          font-size: 13px;
-          font-weight: 600;
-          width: 16px;
-          text-align: center;
-        }
-
-        .delete-item-btn {
-          background: transparent;
-          border: none;
-          color: var(--text-secondary);
-          cursor: pointer;
-          transition: color 0.2s;
-        }
-
-        .delete-item-btn:hover {
-          color: var(--error-red);
-        }
-
-        .empty-cart-placeholder {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 16px;
-          height: 100%;
-          text-align: center;
-          color: var(--text-secondary);
-          font-size: 13px;
-          padding: 20px;
-        }
-
-        .cart-checkout-details {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          border-top: 1px solid rgba(212, 168, 83, 0.1);
-          padding-top: 8px;
-        }
-
-        .checkout-field {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .select-with-icon {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .field-icon {
-          position: absolute;
-          left: 10px;
-          color: var(--text-secondary);
-          pointer-events: none;
-        }
-
-        .select-field {
-          padding-left: 36px;
-        }
-
-        .pos-right-panel .input-field {
-          padding: 8px 12px;
-          font-size: 13px;
-          border-radius: 6px;
-        }
-
-        .pos-right-panel .label-field {
-          margin-bottom: 4px;
-          font-size: 11px;
-        }
-
-        .mixto-inputs {
-          padding: 8px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          border-color: var(--warning-orange);
-        }
-
-        .mixto-inputs h5 {
-          font-size: 11px;
-          color: var(--warning-orange);
-        }
-
-        .mixto-field {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 11px;
-        }
-
-        .compacto {
-          width: 90px;
-          padding: 4px 8px !important;
-          text-align: right;
-        }
-
-        .cart-summary {
-          border-top: 1px solid rgba(212, 168, 83, 0.1);
-          padding-top: 8px;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .summary-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 13px;
-          color: var(--text-secondary);
-        }
-
-        .total-row {
-          font-size: 16px;
-          font-weight: 700;
-          color: var(--text-primary);
-          border-top: 1px dashed rgba(212, 168, 83, 0.2);
-          padding-top: 6px;
-          margin-top: 4px;
-        }
-
-        .cobro-btn {
-          height: 48px;
-          font-size: 15px;
-        }
-
-        /* Alertas de POS */
-        .alert-box {
-          padding: 10px;
-          border-radius: 6px;
-          font-size: 12px;
-          margin-bottom: 8px;
-        }
-        .error-alert {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.3);
-          color: var(--error-red);
-        }
-        .success-alert {
-          background: rgba(34, 197, 94, 0.1);
-          border: 1px solid rgba(34, 197, 94, 0.3);
-          color: var(--success-green);
-        }
-
-        /* Confirm Modal Styles */
-        .confirm-modal-content {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .summary-section {
-          background: rgba(0, 0, 0, 0.02);
-          border: 1px solid var(--panel-border);
-          border-radius: 8px;
-          padding: 12px;
-        }
-
-        .confirm-items-list {
-          max-height: 150px;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .confirm-item-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 13px;
-          padding: 4px 0;
-          border-bottom: 1px dashed rgba(0, 0, 0, 0.05);
-        }
-
-        .zero-price-item {
-          background: rgba(239, 68, 68, 0.05);
-          color: var(--error-red);
-          padding-left: 4px;
-          padding-right: 4px;
-          border-radius: 4px;
-        }
-
-        .item-name-qty {
-          display: flex;
-          gap: 8px;
-        }
-
-        .qty {
-          color: var(--accent-gold);
-          font-weight: 600;
-        }
-
-        .item-price-subtotal {
-          display: flex;
-          gap: 12px;
-        }
-
-        .unit {
-          color: var(--text-secondary);
-        }
-
-        .warning-box {
-          display: flex;
-          gap: 12px;
-          padding: 10px;
-          background: rgba(245, 158, 11, 0.08);
-          border: 1px solid rgba(245, 158, 11, 0.25);
-          border-radius: 8px;
-          align-items: center;
-        }
-
-        .warning-box h5 {
-          font-size: 13px;
-          color: var(--warning-orange);
-          margin-bottom: 2px;
-        }
-
-        .warning-box p {
-          font-size: 11px;
-          color: var(--text-secondary);
-          margin: 0;
-        }
-
-        .total-zero-box {
-          background: rgba(239, 68, 68, 0.05);
-          border-color: rgba(239, 68, 68, 0.25);
-        }
-
-        .total-zero-box h5 {
-          color: var(--error-red);
-        }
-
-        .payment-summary-box {
-          border-top: 1px solid var(--panel-border);
-          border-bottom: 1px solid var(--panel-border);
-          padding: 12px 0;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .pay-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 13px;
-          color: var(--text-secondary);
-        }
-
-        .total-pay-row {
-          margin-top: 6px;
-          padding-top: 6px;
-          border-top: 1px dashed var(--panel-border);
-          font-size: 15px;
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        .text-gold-large {
-          color: var(--accent-gold);
-          font-size: 18px;
-          font-weight: bold;
-        }
-
-        .cash-calculation {
-          background: rgba(212, 168, 83, 0.05);
-          border: 1px solid rgba(212, 168, 83, 0.15);
-          border-radius: 8px;
-          padding: 12px;
-        }
-
-        .change-indicator {
-          margin-top: 8px;
-          font-size: 13px;
-          text-align: right;
-        }
-
-        .insufficient-funds {
-          text-align: left;
-        }
-      `}</style>
     </div>
   );
 }

@@ -4,65 +4,35 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useConfig } from '@/components/ConfigProvider';
-import Header from '@/components/Header';
+import { DashboardModule, ModuleSection } from '@/components/layout';
 import Modal from '@/components/Modal';
-
-import { 
-  SalesLineChart, 
-  TopProductsBarChart, 
-  SalesByCategoryPieChart, 
-  PaymentMethodsPieChart 
+import { LoadingState, StatCard } from '@/components/ui';
+import {
+  SalesLineChart,
+  TopProductsBarChart,
+  SalesByCategoryPieChart,
+  PaymentMethodsPieChart
 } from '@/components/Charts';
 import { formatCurrency } from '@/lib/utils';
-import { 
-  DollarSign, 
-  TrendingUp, 
-  ShoppingBag, 
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { resolvePaymentMethodId } from '@/lib/paymentMethods';
+import {
+  DollarSign,
+  TrendingUp,
+  ShoppingBag,
   AlertTriangle,
   ArrowRight,
   Clock
 } from 'lucide-react';
 
-function LoadingState() {
-  return (
-    <div className="loading-container">
-      <div className="spinner"></div>
-      <p>Cargando información del dashboard...</p>
-      <style dangerouslySetInnerHTML={{ __html: `
-        .loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 70vh;
-          gap: 16px;
-        }
-        .spinner {
-          border: 4px solid rgba(212, 168, 83, 0.1);
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          border-left-color: var(--accent-gold);
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}} />
-    </div>
-  );
-}
-
 function CashierDashboard({ session, configs, cajaAbierta }) {
   return (
-    <div className="dashboard-home">
-      <Header title="Inicio" />
+    <DashboardModule title="Inicio" className="dashboard-home">
       
       {/* Alerta de Caja Cerrada */}
       {!cajaAbierta && session?.user?.rol?.permisos?.pos && (
-        <div className="alert-banner warning-banner animate-fade-in" style={{ marginBottom: '24px' }}>
-          <div className="alert-content">
+        <div className="alert-banner alert-banner--warning animate-fade-in">
+          <div className="alert-banner__content">
             <AlertTriangle size={20} />
             <div>
               <h4>¡Atención! Turno de caja cerrado</h4>
@@ -76,90 +46,38 @@ function CashierDashboard({ session, configs, cajaAbierta }) {
         </div>
       )}
 
-      <div className="glass-panel welcome-card text-center" style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-        <div className="welcome-avatar" style={{
-          width: '80px',
-          height: '80px',
-          borderRadius: '50%',
-          background: 'var(--accent-gold-hover)',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '32px',
-          fontWeight: 'bold',
-          boxShadow: '0 4px 12px rgba(166, 124, 38, 0.2)'
-        }}>
+      <div className="glass-panel welcome-card">
+        <div className="welcome-avatar">
           {session?.user?.name ? session.user.name[0].toUpperCase() : 'U'}
         </div>
         <div>
-          <h2 style={{ color: 'var(--accent-gold)', marginBottom: '8px', fontSize: '24px' }}>
-            ¡Hola, {session?.user?.name || 'Usuario'}!
-          </h2>
-          <p style={{ maxWidth: '600px', margin: '0 auto', color: 'var(--text-color)', opacity: 0.8, fontSize: '15px', lineHeight: '1.6' }}>
-            Has ingresado al sistema de gestión de **{configs.nombre_negocio || 'Mi Licorería'}**. Tu perfil asignado es de **{session?.user?.rol?.nombre || 'Personal'}**.
-            Usa el menú de navegación lateral para registrar operaciones cotidianas o realizar ventas en el punto de venta.
+          <h2>Hola, {session?.user?.name || 'Usuario'}</h2>
+          <p>
+            Estás en {configs.nombre_negocio || 'Mi Licorería'} como {session?.user?.rol?.nombre || 'Personal'}.
+            Usa el menú para vender, abrir caja o revisar inventario.
           </p>
         </div>
-        
-        <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+
+        <div className="welcome-card__actions">
           {session?.user?.rol?.permisos?.pos && (
-            <Link href="/dashboard/pos" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>Ir al Punto de Venta (POS)</span>
+            <Link href="/dashboard/pos" className="btn btn-primary">
+              <span>Ir al punto de venta</span>
               <ArrowRight size={16} />
             </Link>
           )}
           {session?.user?.rol?.permisos?.caja && (
-            <Link href="/dashboard/caja" className="btn btn-secondary" style={{ padding: '12px 24px', fontSize: '14px' }}>
-              Gestionar Caja y Turno
+            <Link href="/dashboard/caja" className="btn btn-secondary">
+              Gestionar caja
             </Link>
           )}
         </div>
       </div>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        .dashboard-home {
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
-        .alert-banner {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 24px;
-          border-radius: 12px;
-          border: 1px dashed;
-        }
-        .warning-banner {
-          background: rgba(245, 158, 11, 0.08);
-          border-color: var(--warning-orange);
-          color: var(--text-primary);
-        }
-        .alert-content {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-        .alert-content h4 {
-          color: var(--warning-orange);
-          margin-bottom: 2px;
-          font-size: 15px;
-        }
-        .alert-content p {
-          font-size: 13px;
-          color: var(--text-secondary);
-        }
-        .alert-btn {
-          padding: 8px 16px;
-          font-size: 13px;
-        }
-      `}} />
-    </div>
+    </DashboardModule>
   );
 }
 
 function AdminDashboard({ reportData, cajaAbierta, session, configs, activeModal, setActiveModal }) {
+  const { methods, labelFor } = usePaymentMethods();
   const { metrics = {}, charts = {}, tables = {}, details = {} } = reportData || {};
 
   // Drilldown states for charts
@@ -241,7 +159,7 @@ function AdminDashboard({ reportData, cajaAbierta, session, configs, activeModal
       const res = await fetch('/api/ventas');
       const ventas = await res.json();
       const filtered = (Array.isArray(ventas) ? ventas : []).filter(
-        v => v.metodoPago.toLowerCase() === data.label.toLowerCase()
+        (v) => v.metodoPago === resolvePaymentMethodId(data.label, methods)
       );
       setChartDetailItems(filtered);
     } catch (e) {
@@ -253,13 +171,11 @@ function AdminDashboard({ reportData, cajaAbierta, session, configs, activeModal
   };
 
   return (
-    <div className="dashboard-home">
-      <Header title="Inicio" />
+    <DashboardModule title="Inicio" className="dashboard-home">
 
-      {/* Alerta de Caja Cerrada */}
       {!cajaAbierta && (
-        <div className="alert-banner warning-banner animate-fade-in">
-          <div className="alert-content">
+        <div className="alert-banner alert-banner--warning animate-fade-in">
+          <div className="alert-banner__content">
             <AlertTriangle size={20} />
             <div>
               <h4>¡Atención! Turno de caja cerrado</h4>
@@ -273,66 +189,41 @@ function AdminDashboard({ reportData, cajaAbierta, session, configs, activeModal
         </div>
       )}
 
-      {/* Grid de Métricas */}
-      <div className="grid-cols-4">
-        <div 
-          className="glass-panel metric-card" 
-          onClick={() => setActiveModal('ventas')} 
-          style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
-        >
-          <div className="metric-icon gold-bg">
-            <DollarSign size={24} />
-          </div>
-          <div className="metric-details">
-            <p className="metric-label">Ventas (Últimos 30 días)</p>
-            <h3 className="metric-value">{formatCurrency(metrics.totalVentasMonto)}</h3>
-          </div>
+      <ModuleSection title="Resumen" meta="Últimos 30 días">
+        <div className="metrics-grid">
+          <StatCard
+            label="Ventas"
+            value={formatCurrency(metrics.totalVentasMonto)}
+            icon={DollarSign}
+            iconTone="brand"
+            onClick={() => setActiveModal('ventas')}
+          />
+          <StatCard
+            label="Transacciones"
+            value={metrics.cantidadVentas || 0}
+            icon={TrendingUp}
+            iconTone="success"
+            onClick={() => setActiveModal('transacciones')}
+          />
+          <StatCard
+            label="Compras"
+            value={formatCurrency(metrics.totalComprasMonto)}
+            icon={ShoppingBag}
+            iconTone="danger"
+            onClick={() => setActiveModal('compras')}
+          />
+          <StatCard
+            label="Por cobrar"
+            value={formatCurrency(metrics.totalPendienteCobro)}
+            icon={AlertTriangle}
+            iconTone="warning"
+            onClick={() => setActiveModal('creditos')}
+          />
         </div>
+      </ModuleSection>
 
-        <div 
-          className="glass-panel metric-card" 
-          onClick={() => setActiveModal('transacciones')} 
-          style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
-        >
-          <div className="metric-icon green-bg">
-            <TrendingUp size={24} />
-          </div>
-          <div className="metric-details">
-            <p className="metric-label">Transacciones (30d)</p>
-            <h3 className="metric-value">{metrics.cantidadVentas || 0}</h3>
-          </div>
-        </div>
-
-        <div 
-          className="glass-panel metric-card" 
-          onClick={() => setActiveModal('compras')} 
-          style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
-        >
-          <div className="metric-icon red-bg">
-            <ShoppingBag size={24} />
-          </div>
-          <div className="metric-details">
-            <p className="metric-label">Compras Realizadas (30d)</p>
-            <h3 className="metric-value">{formatCurrency(metrics.totalComprasMonto)}</h3>
-          </div>
-        </div>
-
-        <div 
-          className="glass-panel metric-card" 
-          onClick={() => setActiveModal('creditos')} 
-          style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
-        >
-          <div className="metric-icon orange-bg">
-            <AlertTriangle size={24} />
-          </div>
-          <div className="metric-details">
-            <p className="metric-label">Cuentas por Cobrar</p>
-            <h3 className="metric-value">{formatCurrency(metrics.totalPendienteCobro)}</h3>
-          </div>
-        </div>
-      </div>
-
-      {/* Gráficas Principales */}
+      <ModuleSection title="Tendencias" meta="Clic para detalle">
+        <div className="dashboard-section__stack">
       <div className="grid-cols-2">
         <div className="glass-panel chart-container">
           <h4>Ventas Diarias (Últimos 30 Días)</h4>
@@ -364,8 +255,10 @@ function AdminDashboard({ reportData, cajaAbierta, session, configs, activeModal
           </div>
         </div>
       </div>
+        </div>
+      </ModuleSection>
 
-      {/* Tablas Críticas de Inventario y Lotes */}
+      <ModuleSection title="Inventario crítico">
       <div className="grid-cols-2">
         <div className="glass-panel table-panel">
           <div className="panel-title-bar">
@@ -443,6 +336,7 @@ function AdminDashboard({ reportData, cajaAbierta, session, configs, activeModal
           </div>
         </div>
       </div>
+      </ModuleSection>
 
       {/* Modal de Ventas */}
       <Modal 
@@ -485,7 +379,7 @@ function AdminDashboard({ reportData, cajaAbierta, session, configs, activeModal
                       <td style={{ padding: '8px 12px' }}>{v.cliente?.nombre || 'General/Mostrador'}</td>
                       <td style={{ padding: '8px 12px' }}>
                         <span className="badge badge-success" style={{ fontSize: '9px', padding: '2px 6px' }}>
-                          {v.metodoPago}
+                          {labelFor(v.metodoPago)}
                         </span>
                       </td>
                       <td style={{ padding: '8px 12px' }} className="text-right font-bold">{formatCurrency(v.total)}</td>
@@ -808,165 +702,7 @@ function AdminDashboard({ reportData, cajaAbierta, session, configs, activeModal
           )}
         </div>
       </Modal>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        .dashboard-home {
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
-
-        .alert-banner {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 24px;
-          border-radius: 12px;
-          border: 1px dashed;
-        }
-
-        .warning-banner {
-          background: rgba(245, 158, 11, 0.08);
-          border-color: var(--warning-orange);
-          color: var(--text-primary);
-        }
-
-        .alert-content {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .alert-content h4 {
-          color: var(--warning-orange);
-          margin-bottom: 2px;
-          font-size: 15px;
-        }
-
-        .alert-content p {
-          font-size: 13px;
-          color: var(--text-secondary);
-        }
-
-        .alert-btn {
-          padding: 8px 16px;
-          font-size: 13px;
-        }
-
-        .metric-card {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          padding: 20px;
-        }
-
-        .metric-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .gold-bg { background: rgba(212, 168, 83, 0.15); color: var(--accent-gold); }
-        .green-bg { background: rgba(34, 197, 94, 0.15); color: var(--success-green); }
-        .red-bg { background: rgba(239, 68, 68, 0.15); color: var(--error-red); }
-        .orange-bg { background: rgba(245, 158, 11, 0.15); color: var(--warning-orange); }
-
-        .metric-details {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .metric-label {
-          font-size: 12px;
-          color: var(--text-secondary);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .metric-value {
-          font-size: 20px;
-          font-weight: 700;
-        }
-
-        .chart-container {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .chart-container h4 {
-          font-size: 16px;
-          color: var(--accent-gold);
-          border-bottom: 1px solid rgba(212, 168, 83, 0.1);
-          padding-bottom: 8px;
-        }
-
-        .chart-wrapper {
-          position: relative;
-          height: 300px;
-        }
-
-        .table-panel {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .panel-title-bar {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          border-bottom: 1px solid rgba(212, 168, 83, 0.1);
-          padding-bottom: 8px;
-        }
-
-        .panel-title-bar h4 {
-          font-size: 16px;
-          color: var(--text-primary);
-        }
-
-        .text-danger { color: var(--error-red); }
-        .text-warning { color: var(--warning-orange); }
-        .font-bold { font-weight: 600; }
-
-        .modal-drilldown-content {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .drilldown-summary {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-          background: rgba(212, 168, 83, 0.04);
-          border: 1px solid rgba(212, 168, 83, 0.12);
-          padding: 16px;
-          border-radius: 8px;
-        }
-        .summary-item {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .summary-lbl {
-          font-size: 11px;
-          text-transform: uppercase;
-          color: var(--text-secondary);
-          letter-spacing: 0.05em;
-        }
-        .summary-val {
-          font-size: 18px;
-          font-weight: 700;
-        }
-        .text-right {
-          text-align: right;
-        }
-      `}} />
-    </div>
+    </DashboardModule>
   );
 }
 
@@ -1004,7 +740,7 @@ export default function DashboardHome() {
   }, []);
 
   if (loading) {
-    return <LoadingState />;
+    return <LoadingState message="Cargando información del dashboard..." />;
   }
 
   const isAdmin = session?.user?.rol?.nombre === 'Administrador' || session?.user?.rol?.nombre === 'Superadministrador';

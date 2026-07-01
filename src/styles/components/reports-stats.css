@@ -1,0 +1,91 @@
+/* Report stat boxes */
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  padding: calc(16px * var(--space-unit)) calc(18px * var(--space-unit));
+}
+
+.stat-box p {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.interactive-stat-box {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.interactive-stat-box:hover {
+  border-color: color-mix(in srgb, var(--color-brand) 35%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.interactive-stat-box:active {
+  transform: translateY(0);
+}
+
+.stat-box:hover {
+  border-color: color-mix(in srgb, var(--color-brand) 35%, transparent);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-box h3 {
+  font-family: var(--font-data);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-ink);
+  letter-spacing: -0.02em;
+}
+
+.stat-lbl {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .dashboard-container {
+    grid-template-columns: 1fr;
+  }
+
+  .mobile-menu-btn { display: inline-flex; }
+  .sidebar-overlay.is-visible { display: block; }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--sidebar-width);
+    height: 100dvh;
+    max-height: 100dvh;
+    grid-column: auto;
+    grid-row: auto;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-md);
+  }
+
+  .sidebar--open { transform: translateX(0); }
+  .sidebar-close-btn { display: inline-flex; }
+
+  .dashboard-content {
+    grid-column: 1;
+    --dashboard-pad-x: 16px;
+    --dashboard-pad-y: 14px;
+  }
+
+  .operation-bar {
+    flex-wrap: wrap;
+  }
+
+  .operation-bar__right { flex-wrap: wrap; }
+}
+.grid-cols-1 { display: grid; grid-template-columns: 1fr; gap: var(--section-gap); }
+.grid-cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--section-gap); }
+.grid-cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--section-gap); }
+.grid-cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--section-gap); }

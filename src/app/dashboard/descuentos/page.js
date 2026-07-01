@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Header from '@/components/Header';
+import { DashboardModule, ModulePanel, PanelToolbar } from '@/components/layout';
 import Table from '@/components/Table';
 import Modal from '@/components/Modal';
 import { formatCurrency, formatDateShort } from '@/lib/utils';
@@ -158,21 +158,17 @@ export default function DescuentosPage() {
   const headers = ['ID', 'Nombre Descuento', 'Tipo', 'Valor', 'Aplicable a', 'Vigencia', 'Estado', 'Acciones'];
 
   return (
-    <div>
-      <Header title="Promociones y Descuentos Especiales" />
-
-      <div className="table-actions glass-panel">
-        <button onClick={openNewModal} className="btn btn-primary" disabled={productos.length === 0}>
-          <Plus size={18} />
-          <span>Nueva Promoción</span>
-        </button>
-      </div>
-
-      <div className="glass-panel" style={{ marginTop: '20px' }}>
-        {loading ? (
-          <p>Cargando promociones...</p>
-        ) : (
-          <Table
+    <DashboardModule title="Descuentos">
+      <ModulePanel loading={loading} loadingMessage="Cargando promociones...">
+        <PanelToolbar
+          actions={
+            <button onClick={openNewModal} className="btn btn-primary" disabled={productos.length === 0}>
+              <Plus size={18} />
+              <span>Nueva promoción</span>
+            </button>
+          }
+        />
+        <Table
             headers={headers}
             data={filteredDescuentos}
             searchVal={searchVal}
@@ -220,8 +216,7 @@ export default function DescuentosPage() {
               </tr>
             )}
           />
-        )}
-      </div>
+      </ModulePanel>
 
       {/* Modal Form */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={modalTitle}>
@@ -325,107 +320,6 @@ export default function DescuentosPage() {
           </div>
         </form>
       </Modal>
-
-      <style jsx>{`
-        .table-actions {
-          display: flex;
-          justify-content: flex-end;
-          padding: 16px;
-        }
-
-        .table-row-actions {
-          display: flex;
-          gap: 6px;
-        }
-
-        .text-xs { font-size: 11px; }
-
-        .form-modal-layout {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-row {
-          display: flex;
-          gap: 16px;
-        }
-
-        .half {
-          flex: 1;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .row-checkbox {
-          flex-direction: row;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .ingredients-section {
-          background: rgba(0, 0, 0, 0.15);
-          border: 1px solid var(--panel-border);
-          border-radius: 8px;
-          padding: 12px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .products-checkboxes-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 8px;
-          max-height: 150px;
-          overflow-y: auto;
-        }
-
-        .product-chk-card {
-          padding: 8px;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid var(--panel-border);
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 12px;
-          text-align: center;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          transition: all 0.2s;
-        }
-
-        .product-chk-card:hover {
-          border-color: var(--accent-gold);
-        }
-
-        .product-chk-card.selected {
-          background: var(--accent-gold);
-          color: #000;
-          border-color: var(--accent-gold);
-          font-weight: 600;
-        }
-
-        .form-buttons {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          margin-top: 10px;
-        }
-
-        .error-banner {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid var(--error-red);
-          color: var(--error-red);
-          padding: 10px;
-          border-radius: 6px;
-          font-size: 13px;
-        }
-      `}</style>
-    </div>
+    </DashboardModule>
   );
 }

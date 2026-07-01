@@ -17,6 +17,14 @@ export function formatDate(dateString) {
   });
 }
 
+export function formatDateTimeCompact(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const day = date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  const time = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  return `${day} ${time}`;
+}
+
 export function formatDateShort(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);

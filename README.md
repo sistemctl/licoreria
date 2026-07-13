@@ -4,22 +4,18 @@ Este proyecto es una aplicación web moderna y completa para la gestión integra
 
 ---
 
-## Despliegue recomendado: contenedores independientes
+## Despliegue recomendado: Docker Compose
 
-La **aplicación** y **PostgreSQL** se despliegan en contenedores/servicios **separados** (ideal para Dokploy).
-
-- **Producción (Dokploy):** Database PostgreSQL + Application con el `Dockerfile` → guía en [DOCKER.md](./DOCKER.md).
-- **Local:**
+Un solo `docker-compose.yml` levanta **app + PostgreSQL**. Ideal para Dokploy en el VPS.
 
 ```bash
 git clone -b 1.0 https://github.com/sistemctl/licoreria.git
 cd licoreria
 cp .env.example .env
-docker compose -f docker-compose.db.yml up -d
 docker compose up -d --build
 ```
 
-Abre [http://localhost:3000](http://localhost:3000).
+Abre [http://localhost:3000](http://localhost:3000). En Dokploy: **Compose** + este archivo → guía en [DOCKER.md](./DOCKER.md).
 
 Las secciones siguientes (Windows / Linux sin Docker) son opcionales para desarrollo nativo.
 
@@ -198,11 +194,11 @@ sudo systemctl enable nginx
 
 ## 🐳 Docker / Dokploy (detalle)
 
-Ver guía completa en **[DOCKER.md](./DOCKER.md)**.
+Ver **[DOCKER.md](./DOCKER.md)**.
 
-- Contenedor **app:** `Dockerfile` / `docker-compose.yml`
-- Contenedor **db:** Dokploy Databases o `docker-compose.db.yml`
-- La app se conecta con `DATABASE_URL` (host interno de la BD, no `localhost` en Dokploy).
+- Archivo: `docker-compose.yml` (servicios `app` + `db`)
+- Dokploy: Create Service → **Compose** → rama `1.0`
+- Por IP: `NEXTAUTH_URL=http://TU_IP_VPS`
 
 ---
 

@@ -197,7 +197,7 @@ sudo systemctl enable nginx
 Ver **[DOCKER.md](./DOCKER.md)**.
 
 - Archivo: `docker-compose.yml` (servicios `app` + `db`)
-- Dokploy: Create Service → **Compose** → rama `1.0`
+- Dokploy: **Compose** + **Domains** → servicio `app` puerto `3000` (no uses el puerto 3000 del VPS)
 - Por IP: `NEXTAUTH_URL=http://TU_IP_VPS`
 
 ---

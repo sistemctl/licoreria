@@ -1,23 +1,20 @@
 # Despliegue simple: Docker Compose (app + PostgreSQL)
 
-Un solo archivo `docker-compose.yml` levanta **app** y **base de datos**.
-
-```bash
-cp .env.example .env
-# Edita NEXTAUTH_SECRET y NEXTAUTH_URL
-docker compose up -d --build
-```
+Un solo `docker-compose.yml` levanta **app** y **base de datos**.
 
 ---
 
-## Dokploy en VPS (por IP) — lo más simple
+## Dokploy en VPS (por IP)
 
-### 1. Crear el servicio Compose
+### Error típico: `Bind for 0.0.0.0:3000 failed: port is already allocated`
 
-1. Dokploy → **Create Service** → **Compose** → **Docker Compose**
-2. Fuente: GitHub `sistemctl/licoreria`, rama **`1.0`**
-3. Compose file: `docker-compose.yml`
-4. En **Environment** pega (cambia `TU_IP_VPS` y las claves):
+Eso significa que otro servicio (a menudo Dokploy/Traefik u otra app) ya usa el **3000 del VPS**.  
+Este compose **ya no publica** el 3000 en el host: solo lo expone por dentro. El acceso es por **Domains** de Dokploy (puerto 80).
+
+### Pasos
+
+1. Dokploy → **Compose** → repo `sistemctl/licoreria` rama **`1.0`** → `docker-compose.yml`
+2. **Environment**:
 
 ```env
 POSTGRES_USER=postgres
@@ -25,22 +22,15 @@ POSTGRES_PASSWORD=cambia_esta_clave
 POSTGRES_DB=licoreria_db
 NEXTAUTH_SECRET=un_secreto_largo_y_seguro
 NEXTAUTH_URL=http://TU_IP_VPS
-APP_PORT=3000
 RUN_SEED=true
 ```
 
-5. **Deploy**
-6. En **Domains**, apunta la IP (o dominio) al servicio **`app`**, puerto **3000**
-7. Abre `http://TU_IP_VPS` → login `admin@licoreria.com` / `admin123`
-8. Cambia `RUN_SEED=false` y vuelve a desplegar
+3. **Deploy**
+4. **Domains** → añade la IP (o dominio) → servicio **`app`** → puerto **`3000`**
+5. Abre `http://TU_IP_VPS` → `admin@licoreria.com` / `admin123`
+6. Pon `RUN_SEED=false` y redespliega
 
-Si Dokploy te muestra un puerto (ej. `http://IP:3000`), usa esa misma URL en `NEXTAUTH_URL`.
-
-### Notas
-
-- No hace falta crear la base de datos a mano: va dentro del compose.
-- Postgres **no** se publica a internet (solo la app).
-- `DATABASE_URL` se arma sola hacia el servicio `db`.
+`NEXTAUTH_URL` debe ser exactamente la URL con la que entras en el navegador.
 
 ---
 
@@ -53,12 +43,17 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Abre [http://localhost:3000](http://localhost:3000).
+Para abrir en el navegador en local, publica el puerto una vez (ej. en un override) o usa:
 
 ```bash
-docker compose logs -f app
-docker compose down        # parar
-docker compose down -v     # parar y borrar datos de la BD
+docker compose exec app wget -qO- http://127.0.0.1:3000
+```
+
+O añade temporalmente bajo `app:`:
+
+```yaml
+ports:
+  - "3000:3000"
 ```
 
 ---
@@ -70,7 +65,6 @@ docker compose down -v     # parar y borrar datos de la BD
 | `POSTGRES_PASSWORD` | Clave de PostgreSQL |
 | `NEXTAUTH_SECRET` | Secreto de sesiones |
 | `NEXTAUTH_URL` | URL pública (`http://IP` o `https://dominio`) |
-| `APP_PORT` | Puerto en el host (default 3000) |
 | `RUN_SEED` | `true` solo la primera vez |
 
-Al arrancar, la app espera a Postgres, corre migraciones y, si `RUN_SEED=true`, el seed.
+Al arrancar: espera Postgres → migraciones → seed opcional.

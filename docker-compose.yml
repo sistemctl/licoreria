@@ -1,6 +1,8 @@
 # Un solo archivo: app + PostgreSQL
+#
+# Dokploy: Compose + Domains → servicio "app", puerto 3000 (Traefik).
 # Local:   docker compose up -d --build
-# Dokploy: Create Service → Compose → este docker-compose.yml
+#          y publica el puerto con: APP_PORT=3000 (ver abajo)
 
 name: licoreria
 
@@ -23,8 +25,9 @@ services:
   app:
     build: .
     restart: unless-stopped
-    ports:
-      - "${APP_PORT:-3000}:3000"
+    # Puerto interno para Dokploy Domains / Traefik (no ocupa 3000 del VPS)
+    expose:
+      - "3000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-licoreria_secret}@db:5432/${POSTGRES_DB:-licoreria_db}?schema=public
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-cambia_este_secreto_en_produccion}

@@ -1,3 +1,7 @@
+# Despliegue principal: docker compose up -d --build
+# Guía: DOCKER.md
+name: licoreria
+
 services:
   db:
     image: postgres:16-alpine

@@ -9,13 +9,20 @@ La **aplicación** y la **base de datos** van en contenedores/servicios **separa
 
 ---
 
-## Dokploy (recomendado en producción)
+## Dokploy en VPS (por IP o dominio)
+
+### Requisitos previos
+
+1. VPS con Docker + Dokploy instalado y panel accesible.
+2. Puerto **80** (y **443** si usas HTTPS) abiertos en el firewall.
+3. Repo GitHub: `sistemctl/licoreria`, rama **`1.0`**.
 
 ### 1. Crear la base de datos (contenedor independiente)
 
-1. En Dokploy → **Databases** → **PostgreSQL**
+1. Dokploy → **Databases** → **PostgreSQL**
 2. Nombre, usuario, contraseña y base (ej. `licoreria_db`)
-3. Despliega y copia la **connection URL** interna (host interno de Dokploy)
+3. Deploy
+4. Copia la **connection URL interna** (host interno de Dokploy, **no** la IP pública ni `localhost`)
 
 ### 2. Crear la aplicación (contenedor independiente)
 
@@ -23,28 +30,49 @@ La **aplicación** y la **base de datos** van en contenedores/servicios **separa
 2. Fuente: GitHub `sistemctl/licoreria`, rama **`1.0`**
 3. Build: **Dockerfile** (raíz del repo)
 4. Puerto de la app: **3000**
-5. Variables de entorno:
+5. Variables de entorno (sustituye `TU_IP_VPS` y la URL de la BD):
 
 ```env
 DATABASE_URL=postgresql://USUARIO:PASSWORD@HOST_INTERNO_DB:5432/licoreria_db?schema=public
 NEXTAUTH_SECRET=un_secreto_largo_y_seguro
-NEXTAUTH_URL=https://tu-dominio.com
+NEXTAUTH_URL=http://TU_IP_VPS
 PORT=3000
 HOSTNAME=0.0.0.0
 RUN_SEED=true
 ```
 
+**Si Dokploy te da un puerto publicado** (ej. `http://IP:3000` o `http://IP:8080`), usa exactamente esa URL en `NEXTAUTH_URL`.
+
 6. Deploy
-7. En **Domains**, asigna tu dominio al servicio de la app (puerto 3000)
+7. Acceso por IP:
+   - En **Domains** / publicación: usa la IP del VPS o el puerto que Dokploy asigne al servicio `app` (puerto interno **3000**).
+   - Sin dominio: normalmente entras por `http://TU_IP_VPS` (Traefik puerto 80) o `http://TU_IP_VPS:PUERTO` si publicaste el puerto directo.
 8. Cuando el seed haya corrido una vez, cambia `RUN_SEED=false` y vuelve a desplegar
 
 Login inicial: `admin@licoreria.com` / `admin123`
 
+### Ejemplo con IP
+
+Si tu VPS es `203.0.113.50` y entras por HTTP en el puerto 80:
+
+```env
+NEXTAUTH_URL=http://203.0.113.50
+```
+
+Si más adelante pones dominio + SSL, cambia a:
+
+```env
+NEXTAUTH_URL=https://licoreria.tudominio.com
+```
+
+y vuelve a desplegar.
+
 ### Notas Dokploy
 
-- `DATABASE_URL` debe usar el **hostname interno** del servicio PostgreSQL de Dokploy (no `localhost`).
-- App y DB deben poder verse en la red de Dokploy (misma red / sin aislamiento que los separe).
-- No expongas el puerto 5432 a internet.
+- `DATABASE_URL` = hostname **interno** del PostgreSQL de Dokploy (no `localhost`, no la IP pública).
+- App y DB en la misma red de Dokploy (sin aislamiento que los separe).
+- No expongas el puerto **5432** a internet.
+- Con solo IP suele ser **HTTP** (`http://...`). NextAuth necesita que `NEXTAUTH_URL` coincida con la URL con la que abres el navegador.
 - Tras el primer arranque, desactiva el seed.
 
 ---

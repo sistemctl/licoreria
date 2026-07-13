@@ -325,6 +325,7 @@ async function main() {
     { clave: 'prefijo_factura', valor: 'FAC-', descripcion: 'Prefijo correlativo de facturas' },
     { clave: 'siguiente_num_factura', valor: '1', descripcion: 'Próximo número de factura a emitir' },
     { clave: 'dias_alerta_vencimiento', valor: '15', descripcion: 'Días de antelación para alertas de vencimiento' },
+    { clave: 'puerto_servidor', valor: '3000', descripcion: 'Puerto HTTP del servidor Next.js' },
     { clave: 'logo_url', valor: '', descripcion: 'URL del logo de la licorería' },
     { clave: 'color_tema', valor: '#a67c26', descripcion: 'Color hexadecimal del tema visual' },
     {

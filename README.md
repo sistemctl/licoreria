@@ -175,6 +175,143 @@ sudo systemctl enable nginx
 
 ---
 
+## 🐳 Despliegue con Docker (Recomendado)
+
+La forma más rápida de levantar el sistema completo (aplicación + PostgreSQL) es con Docker Compose.
+
+### Requisitos Previos
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/macOS) o Docker Engine + Docker Compose (Linux)
+
+### Inicio Rápido
+
+1. **Clonar la rama `1.0` e ir al proyecto:**
+   ```bash
+   git clone -b 1.0 https://github.com/sistemctl/licoreria.git
+   cd licoreria
+   ```
+
+2. **Configurar variables de entorno:**
+   ```bash
+   cp .env.example .env
+   ```
+   Edita `.env` y cambia al menos `NEXTAUTH_SECRET` por un valor aleatorio seguro (32+ caracteres).
+
+3. **Primera instalación (con datos iniciales):**
+   ```bash
+   docker compose up --build -d
+   ```
+   En la primera ejecución, deja `RUN_SEED=true` en `.env` para crear roles y el usuario administrador.
+
+4. **Acceder a la aplicación:**
+   Abre [http://localhost:3000](http://localhost:3000) (o el puerto definido en `APP_PORT`).
+
+### Comandos Útiles
+
+```bash
+# Ver logs en tiempo real
+docker compose logs -f app
+
+# Detener servicios
+docker compose down
+
+# Detener y eliminar la base de datos (¡borra todos los datos!)
+docker compose down -v
+
+# Reconstruir tras cambios en el código
+docker compose up --build -d
+```
+
+### Variables de Entorno (Docker)
+
+| Variable | Descripción | Valor por defecto |
+|----------|-------------|-------------------|
+| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL | `licoreria` |
+| `NEXTAUTH_SECRET` | Secreto para sesiones NextAuth | *(obligatorio cambiar)* |
+| `NEXTAUTH_URL` | URL pública de la app | `http://localhost:3000` |
+| `APP_PORT` | Puerto expuesto en el host | `3000` |
+| `RUN_SEED` | Ejecutar seed al iniciar (`true`/`false`) | `false` |
+
+### Notas para Producción
+
+* Cambia `NEXTAUTH_SECRET` y `POSTGRES_PASSWORD` por valores fuertes y únicos.
+* Ajusta `NEXTAUTH_URL` a la URL real de tu servidor (ej. `https://pos.tudominio.com`).
+* Tras la primera instalación, pon `RUN_SEED=false` para no sobrescribir datos en reinicios.
+* Usa un proxy inverso (Nginx, Traefik, Caddy) con HTTPS delante del contenedor.
+* Los datos de PostgreSQL persisten en el volumen Docker `pgdata`.
+
+---
+
+## 🐳 Despliegue con Docker (recomendado)
+
+La forma más rápida de levantar el sistema completo (aplicación + PostgreSQL) es con Docker Compose.
+
+### Requisitos
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/macOS) o Docker Engine + Docker Compose (Linux)
+
+### Pasos
+
+1. **Clonar la rama `1.0`:**
+   ```bash
+   git clone -b 1.0 https://github.com/sistemctl/licoreria.git
+   cd licoreria
+   ```
+
+2. **Configurar variables de entorno:**
+   ```bash
+   cp .env.example .env
+   ```
+   Edita `.env` y cambia al menos `NEXTAUTH_SECRET` por un valor seguro. En la **primera instalación** deja `RUN_SEED=true`.
+
+3. **Construir e iniciar:**
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. **Abrir la aplicación:**
+   [http://localhost:3000](http://localhost:3000) (o el puerto definido en `APP_PORT`)
+
+5. **Ver logs:**
+   ```bash
+   docker compose logs -f app
+   ```
+
+6. **Detener:**
+   ```bash
+   docker compose down
+   ```
+
+### Variables importantes (`.env`)
+
+| Variable | Descripción |
+|---|---|
+| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL |
+| `NEXTAUTH_SECRET` | Secreto para sesiones (obligatorio cambiar en producción) |
+| `NEXTAUTH_URL` | URL pública de la app (ej. `https://tudominio.com`) |
+| `APP_PORT` | Puerto expuesto al host (default: `3000`) |
+| `RUN_SEED` | `true` solo en la primera instalación; luego usa `false` |
+
+### Producción
+
+* Cambia `NEXTAUTH_SECRET` y `POSTGRES_PASSWORD` por valores fuertes.
+* Ajusta `NEXTAUTH_URL` a la URL real del servidor (con `https://` si usas SSL).
+* Tras el primer arranque exitoso, pon `RUN_SEED=false` para no repetir la semilla.
+* Opcional: coloca un proxy inverso (Nginx, Traefik, Caddy) delante del contenedor `app`.
+
+### Comandos útiles
+
+```bash
+# Reconstruir tras cambios en el código
+docker compose up -d --build
+
+# Reiniciar solo la app
+docker compose restart app
+
+# Eliminar contenedores y volúmenes (borra la base de datos)
+docker compose down -v
+```
+
+---
+
 ## 🔑 Credenciales por Defecto (Creadas con el Seed)
 * **Email:** `admin@licoreria.com`
 * **Contraseña:** `admin123`

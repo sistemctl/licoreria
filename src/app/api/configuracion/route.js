@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { filterPublicConfig } from '@/lib/publicConfig';
+import { parseServerPort, syncServerPortToEnv } from '@/lib/serverPort';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,17 @@ export async function PUT(request) {
 
     const body = await request.json(); // Se espera un objeto { clave1: valor1, clave2: valor2 }
 
+    if (body.puerto_servidor !== undefined) {
+      const port = parseServerPort(body.puerto_servidor);
+      if (!port) {
+        return NextResponse.json(
+          { error: 'Puerto inválido. Usa un número entre 1024 y 65535.' },
+          { status: 400 }
+        );
+      }
+      body.puerto_servidor = String(port);
+    }
+
     const actualizadas = [];
 
     await prisma.$transaction(async (tx) => {
@@ -71,6 +83,10 @@ export async function PUT(request) {
         });
       }
     });
+
+    if (body.puerto_servidor !== undefined) {
+      syncServerPortToEnv(parseInt(body.puerto_servidor, 10));
+    }
 
     return NextResponse.json(actualizadas);
   } catch (error) {

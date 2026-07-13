@@ -27,6 +27,7 @@ import {
   User,
   ShieldAlert,
   Wallet,
+  Server,
 } from 'lucide-react';
 import { useConfig } from '@/components/ConfigProvider';
 import { LoadingState } from '@/components/ui';
@@ -38,6 +39,7 @@ const ALL_TABS = [
   { id: 'facturacion', label: 'Facturación', icon: Receipt, permKey: 'configuracion', group: 'settings' },
   { id: 'pagos', label: 'Métodos de pago', icon: Wallet, permKey: 'configuracion', group: 'settings' },
   { id: 'inventario', label: 'Inventario', icon: Package, permKey: 'configuracion', group: 'settings' },
+  { id: 'sistema', label: 'Sistema', icon: Server, permKey: 'configuracion', group: 'settings' },
   { id: 'apariencia', label: 'Apariencia', icon: Palette, permKey: 'configuracion', group: 'settings' },
   { id: 'usuarios', label: 'Usuarios', icon: User, permKey: 'usuarios', group: 'admin' },
   { id: 'auditoria', label: 'Auditoría', icon: ShieldAlert, permKey: 'auditoria', group: 'admin' },
@@ -48,6 +50,7 @@ const TAB_INTRO = {
   facturacion: 'Moneda, impuestos y numeración de facturas.',
   pagos: 'Formas de pago disponibles en POS, caja y abonos.',
   inventario: 'Alertas y parámetros de stock.',
+  sistema: 'Puerto de red y parámetros del servidor.',
   apariencia: 'Estilos, colores, botones y apariencia del sistema.',
   usuarios: 'Quién tiene acceso y qué puede hacer en el sistema.',
   auditoria: 'Registro de cambios y actividad en el sistema.',
@@ -69,6 +72,7 @@ function ConfiguracionContent() {
   const [prefijoFactura, setPrefijoFactura] = useState('');
   const [siguienteNumFactura, setSiguienteNumFactura] = useState('');
   const [diasAlertaVencimiento, setDiasAlertaVencimiento] = useState('');
+  const [puertoServidor, setPuertoServidor] = useState('3000');
   const [logoUrl, setLogoUrl] = useState('');
   const [colorTema, setColorTema] = useState('#8B6914');
   const [colorSecundario, setColorSecundario] = useState('#C9A03D');
@@ -100,7 +104,7 @@ function ConfiguracionContent() {
     return visibleTabs[0]?.id || 'negocio';
   }, [tabParam, visibleTabs]);
 
-  const isSettingsTab = ['negocio', 'facturacion', 'inventario', 'apariencia', 'pagos'].includes(activeTab);
+  const isSettingsTab = ['negocio', 'facturacion', 'inventario', 'sistema', 'apariencia', 'pagos'].includes(activeTab);
 
   const setActiveTab = (id) => {
     router.replace(`/dashboard/configuracion?tab=${id}`, { scroll: false });
@@ -152,6 +156,7 @@ function ConfiguracionContent() {
       setPrefijoFactura(map.prefijo_factura || 'FAC-');
       setSiguienteNumFactura(map.siguiente_num_factura || '1');
       setDiasAlertaVencimiento(map.dias_alerta_vencimiento || '15');
+      setPuertoServidor(map.puerto_servidor || '3000');
       setLogoUrl(map.logo_url || '');
       setColorTema(map.color_tema || '#8B6914');
       setColorSecundario(map.color_secundario || '#C9A03D');
@@ -222,6 +227,7 @@ function ConfiguracionContent() {
       prefijo_factura: prefijoFactura,
       siguiente_num_factura: siguienteNumFactura,
       dias_alerta_vencimiento: diasAlertaVencimiento,
+      puerto_servidor: puertoServidor,
       logo_url: logoUrl,
       color_tema: colorTema,
       color_secundario: colorSecundario,
@@ -245,7 +251,11 @@ function ConfiguracionContent() {
       });
       const json = await res.json();
       if (!json.error) {
-        setMensajeExito('Configuración guardada correctamente.');
+        setMensajeExito(
+          payload.puerto_servidor
+            ? 'Configuración guardada. Reinicia el servidor (npm run start o PM2) para aplicar el nuevo puerto.'
+            : 'Configuración guardada correctamente.'
+        );
         updateConfigState(payload);
         setTimeout(() => setMensajeExito(''), 4000);
       } else {
@@ -525,6 +535,62 @@ function ConfiguracionContent() {
                         <p>
                           El umbral de cada producto se define en Inventario al crear o editar el ítem. El panel de
                           inicio muestra cuántos productos están bajo su mínimo configurado.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </ConfigSectionLayout>
+            )}
+
+            {activeTab === 'sistema' && (
+              <ConfigSectionLayout
+                asideTitle="Después de guardar"
+                aside={
+                  <div className="config-info-card">
+                    <h4>Reinicio requerido</h4>
+                    <p>
+                      El puerto solo se aplica al arrancar el servidor. Tras guardar, reinicia con{' '}
+                      <code>npm run start</code> o <code>pm2 restart licoreria-pos</code>.
+                    </p>
+                    <p className="field-hint" style={{ marginTop: '8px' }}>
+                      Si usas Nginx, actualiza también <code>proxy_pass</code> al nuevo puerto.
+                    </p>
+                  </div>
+                }
+              >
+                <section className="config-block config-block--fill">
+                  <div className="config-block__head">
+                    <h3 className="config-block__title">Servidor de la aplicación</h3>
+                    <p className="config-block__desc">
+                      Puerto TCP donde escucha Next.js en esta máquina (desarrollo y producción).
+                    </p>
+                  </div>
+                  <div className="form-grid form-grid--relaxed">
+                    <div className="form-group">
+                      <label className="label-field">Puerto del servidor</label>
+                      <input
+                        type="number"
+                        min="1024"
+                        max="65535"
+                        value={puertoServidor}
+                        onChange={(e) => setPuertoServidor(e.target.value)}
+                        className="input-field"
+                        placeholder="3000"
+                      />
+                      <p className="field-hint">
+                        Valores válidos: 1024–65535. Por defecto 3000. También se guarda en <code>.env</code> como{' '}
+                        <code>PORT</code>.
+                      </p>
+                    </div>
+                    <div className="form-group span-2">
+                      <div className="config-info-card">
+                        <h4>URL de acceso local</h4>
+                        <p>
+                          Tras reiniciar: <strong>http://localhost:{puertoServidor || '3000'}</strong>
+                        </p>
+                        <p className="field-hint" style={{ marginTop: '8px' }}>
+                          Ajusta <code>NEXTAUTH_URL</code> en <code>.env</code> si cambias el puerto en producción.
                         </p>
                       </div>
                     </div>

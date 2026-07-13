@@ -4,20 +4,24 @@ Este proyecto es una aplicación web moderna y completa para la gestión integra
 
 ---
 
-## Despliegue recomendado: Docker Compose
+## Despliegue recomendado: contenedores independientes
 
-La forma principal de desplegar el sistema (app + PostgreSQL) es con **Docker Compose V2**:
+La **aplicación** y **PostgreSQL** se despliegan en contenedores/servicios **separados** (ideal para Dokploy).
+
+- **Producción (Dokploy):** Database PostgreSQL + Application con el `Dockerfile` → guía en [DOCKER.md](./DOCKER.md).
+- **Local:**
 
 ```bash
 git clone -b 1.0 https://github.com/sistemctl/licoreria.git
 cd licoreria
 cp .env.example .env
+docker compose -f docker-compose.db.yml up -d
 docker compose up -d --build
 ```
 
-Abre [http://localhost:3000](http://localhost:3000). Guía completa: [DOCKER.md](./DOCKER.md).
+Abre [http://localhost:3000](http://localhost:3000).
 
-Las secciones siguientes (Windows / Linux sin Docker) son opcionales para desarrollo local o instalaciones nativas.
+Las secciones siguientes (Windows / Linux sin Docker) son opcionales para desarrollo nativo.
 
 ---
 
@@ -192,16 +196,13 @@ sudo systemctl enable nginx
 
 ---
 
-## 🐳 Docker Compose (detalle)
+## 🐳 Docker / Dokploy (detalle)
 
-Ver guía completa en **[DOCKER.md](./DOCKER.md)**. Resumen:
+Ver guía completa en **[DOCKER.md](./DOCKER.md)**.
 
-```bash
-cp .env.example .env
-docker compose up -d --build
-```
-
-Servicios: `app` (Next.js) + `db` (PostgreSQL 16). Comandos: `docker compose` (Compose V2).
+- Contenedor **app:** `Dockerfile` / `docker-compose.yml`
+- Contenedor **db:** Dokploy Databases o `docker-compose.db.yml`
+- La app se conecta con `DATABASE_URL` (host interno de la BD, no `localhost` en Dokploy).
 
 ---
 

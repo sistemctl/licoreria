@@ -1,38 +1,29 @@
-# Despliegue principal: docker compose up -d --build
-# Guía: DOCKER.md
+# Contenedor de la APLICACIÓN (independiente de la base de datos).
+# Requiere DATABASE_URL apuntando a un PostgreSQL externo (otro contenedor / Dokploy DB).
+#
+# Local (con DB aparte):
+#   docker compose -f docker-compose.db.yml up -d
+#   cp .env.example .env   # ajusta DATABASE_URL a localhost:5432
+#   docker compose up -d --build
+#
+# Dokploy: usa el Dockerfile como Application + un PostgreSQL en Databases (no hace falta este compose).
+
 name: licoreria
 
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-licoreria_secret}
-      POSTGRES_DB: licoreria_db
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d licoreria_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   app:
     build: .
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-3000}:${APP_PORT:-3000}"
+      - "${APP_PORT:-3000}:3000"
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-licoreria_secret}@db:5432/licoreria_db?schema=public
+      DATABASE_URL: ${DATABASE_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-cambia_este_secreto_en_produccion}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
-      PORT: ${APP_PORT:-3000}
+      PORT: "3000"
       HOSTNAME: 0.0.0.0
       RUN_SEED: ${RUN_SEED:-false}
-    depends_on:
-      db:
-        condition: service_healthy
-
-volumes:
-  pgdata:
+    # Si usas docker-compose.db.yml en la misma red Docker:
+    # networks:
+    #   - default
+    #   - licoreria_db_net

@@ -1,14 +1,55 @@
-# Despliegue con Docker Compose
+# Despliegue: contenedores independientes (app + PostgreSQL)
 
-**Método recomendado** para levantar el sistema completo (aplicación Next.js + PostgreSQL).
+La **aplicación** y la **base de datos** van en contenedores/servicios **separados**.
 
-Usa **Docker Compose V2** (`docker compose`, no el binario legacy `docker-compose`).
+| Contenedor | Qué es | Archivo / servicio |
+|------------|--------|--------------------|
+| App | Next.js + Prisma (migraciones al arrancar) | `Dockerfile` |
+| DB | PostgreSQL 16 | Dokploy Databases, o `docker-compose.db.yml` |
 
-## Requisitos
+---
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/macOS), o Docker Engine + plugin Compose (Linux)
+## Dokploy (recomendado en producción)
 
-## Inicio rápido
+### 1. Crear la base de datos (contenedor independiente)
+
+1. En Dokploy → **Databases** → **PostgreSQL**
+2. Nombre, usuario, contraseña y base (ej. `licoreria_db`)
+3. Despliega y copia la **connection URL** interna (host interno de Dokploy)
+
+### 2. Crear la aplicación (contenedor independiente)
+
+1. **Create Service** → **Application**
+2. Fuente: GitHub `sistemctl/licoreria`, rama **`1.0`**
+3. Build: **Dockerfile** (raíz del repo)
+4. Puerto de la app: **3000**
+5. Variables de entorno:
+
+```env
+DATABASE_URL=postgresql://USUARIO:PASSWORD@HOST_INTERNO_DB:5432/licoreria_db?schema=public
+NEXTAUTH_SECRET=un_secreto_largo_y_seguro
+NEXTAUTH_URL=https://tu-dominio.com
+PORT=3000
+HOSTNAME=0.0.0.0
+RUN_SEED=true
+```
+
+6. Deploy
+7. En **Domains**, asigna tu dominio al servicio de la app (puerto 3000)
+8. Cuando el seed haya corrido una vez, cambia `RUN_SEED=false` y vuelve a desplegar
+
+Login inicial: `admin@licoreria.com` / `admin123`
+
+### Notas Dokploy
+
+- `DATABASE_URL` debe usar el **hostname interno** del servicio PostgreSQL de Dokploy (no `localhost`).
+- App y DB deben poder verse en la red de Dokploy (misma red / sin aislamiento que los separe).
+- No expongas el puerto 5432 a internet.
+- Tras el primer arranque, desactiva el seed.
+
+---
+
+## Local: dos contenedores separados
 
 ```bash
 git clone -b 1.0 https://github.com/sistemctl/licoreria.git
@@ -16,7 +57,13 @@ cd licoreria
 cp .env.example .env
 ```
 
-Edita `.env` y cambia al menos `NEXTAUTH_SECRET`. En la primera instalación deja `RUN_SEED=true`.
+1. **Base de datos:**
+
+```bash
+docker compose -f docker-compose.db.yml up -d
+```
+
+2. **Aplicación** (con `DATABASE_URL` apuntando a `localhost:5432` en `.env`):
 
 ```bash
 docker compose up -d --build
@@ -24,49 +71,33 @@ docker compose up -d --build
 
 Abre [http://localhost:3000](http://localhost:3000).
 
-Credenciales iniciales (si corriste el seed): `admin@licoreria.com` / `admin123`.
-
-## Servicios
-
-| Servicio | Descripción |
-|----------|-------------|
-| `app` | Next.js en producción (migraciones + opcional seed al arrancar) |
-| `db` | PostgreSQL 16 (volumen `pgdata`) |
-
-## Comandos útiles
+### Comandos útiles
 
 ```bash
-# Logs
+# Logs app
 docker compose logs -f app
 
-# Detener
+# Logs DB
+docker compose -f docker-compose.db.yml logs -f db
+
+# Parar app
 docker compose down
 
-# Detener y borrar la base de datos
-docker compose down -v
-
-# Reconstruir tras cambios de código
-docker compose up -d --build
-
-# Reiniciar solo la app
-docker compose restart app
+# Parar DB (cuidado: -v borra datos)
+docker compose -f docker-compose.db.yml down
 ```
 
-## Variables de entorno (`.env`)
+---
 
-| Variable | Descripción | Default |
-|----------|-------------|---------|
-| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL | `licoreria_secret` |
-| `NEXTAUTH_SECRET` | Secreto de sesiones (cámbialo) | — |
-| `NEXTAUTH_URL` | URL pública de la app | `http://localhost:3000` |
-| `APP_PORT` | Puerto en el host | `3000` |
-| `RUN_SEED` | Seed al iniciar (`true`/`false`) | `false` (en `.env.example`: `true`) |
+## Variables
 
-## Producción
+| Variable | Quién la usa | Descripción |
+|----------|--------------|-------------|
+| `DATABASE_URL` | App | Conexión a PostgreSQL externo |
+| `NEXTAUTH_SECRET` | App | Secreto de sesiones |
+| `NEXTAUTH_URL` | App | URL pública (`https://...` en prod) |
+| `PORT` / `APP_PORT` | App | Puerto interno / host |
+| `RUN_SEED` | App | `true` solo la primera vez |
+| `POSTGRES_*` | Solo DB local | Usuario, clave, nombre, puerto |
 
-1. Cambia `NEXTAUTH_SECRET` y `POSTGRES_PASSWORD`.
-2. Ajusta `NEXTAUTH_URL` a tu URL real (con `https://` si aplica).
-3. Tras el primer arranque, pon `RUN_SEED=false`.
-4. Opcional: proxy inverso (Nginx, Traefik, Caddy) delante del puerto de `app`.
-
-Archivos: `Dockerfile`, `docker-compose.yml`, `docker-entrypoint.sh`, `.dockerignore`, `.env.example`.
+Al arrancar, el contenedor de la app espera a PostgreSQL, ejecuta `prisma migrate deploy` y, si `RUN_SEED=true`, el seed.
